@@ -1,0 +1,28 @@
+/* Write your global styles here, in PostCSS syntax */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@tailwind variants;
+
+html,
+body {
+  @apply h-full overflow-hidden;
+}
+
+body {
+  background-color: hsla(264, 64%, 81%, 1);
+  background-image: radial-gradient(
+      at 72% 67%,
+      hsla(224, 60%, 91%, 1) 0px,
+      transparent 50%
+    ),
+    radial-gradient(at 80% 0%, hsla(247, 84%, 79%, 1) 0px, transparent 50%);
+}
+
+.align-end {
+  align-items: end;
+}
+
+label.required::after {
+  content: "*";
+}
