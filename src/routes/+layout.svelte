@@ -21,6 +21,7 @@
 
   import { dev } from "$app/environment";
   import { inject as vercelAnalytics } from "@vercel/analytics";
+  import { injectSpeedInsights as vercelSpeedInsight } from "@vercel/speed-insights/sveltekit";
 
   import { pageInfo, modalStore, toastStore } from "$lib/utils";
 
@@ -30,6 +31,7 @@
   toastStore.set(getToastStore());
 
   vercelAnalytics({ mode: dev ? "development" : "production" });
+  vercelSpeedInsight();
 </script>
 
 <svelte:head>
