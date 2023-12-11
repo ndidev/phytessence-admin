@@ -19,12 +19,17 @@
     arrow,
   } from "@floating-ui/dom";
 
+  import { dev } from "$app/environment";
+  import { inject as vercelAnalytics } from "@vercel/analytics";
+
   import { pageInfo, modalStore, toastStore } from "$lib/utils";
 
   initializeStores();
   storePopup.set({ computePosition, autoUpdate, offset, shift, flip, arrow });
   modalStore.set(getModalStore());
   toastStore.set(getToastStore());
+
+  vercelAnalytics({ mode: dev ? "development" : "production" });
 </script>
 
 <svelte:head>
