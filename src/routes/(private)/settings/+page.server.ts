@@ -1,6 +1,6 @@
 import type { PageServerLoad, Actions } from "./$types";
 import { mysql } from "$lib/server";
-import { nanoid, DateUtils } from "$lib/utils";
+import { nanoid } from "$lib/utils";
 import { fail } from "@sveltejs/kit";
 
 export const load = (async () => {
@@ -33,6 +33,8 @@ export const actions = {
     try {
       await mysql.beginTransaction();
 
+      const customersPromises = [];
+
       const query = `INSERT INTO customers
         SET
           id = :id,
@@ -42,8 +44,10 @@ export const actions = {
           active = 1`;
 
       for (const customer of customers) {
-        await mysql.execute(query, customer);
+        customersPromises.push(mysql.execute(query, customer));
       }
+
+      await Promise.all(customersPromises);
 
       await mysql.commit();
 
@@ -143,8 +147,6 @@ export const actions = {
     let plantsCount = 0;
 
     try {
-      await mysql.beginTransaction();
-
       /**
        * Ordre des opérations :
        * 1. réduction du tableau des commandes pour extraire :
@@ -269,6 +271,12 @@ export const actions = {
         });
       });
 
+      await mysql.beginTransaction();
+
+      await mysql.query(`SET FOREIGN_KEY_CHECKS = 0`);
+
+      const plantsPromises = [];
+
       // 2.a. insertion de la liste des plantes
       const plantsQuery = `
         INSERT INTO plants
@@ -277,27 +285,34 @@ export const actions = {
           name = :name,
           unit = :unit`;
 
-      // plants.forEach(async (plant) => {
       for (const plant of plants) {
-        await mysql.execute(plantsQuery, plant);
+        plantsPromises.push(mysql.execute(plantsQuery, plant));
       }
-      // });
+
+      Promise.all(plantsPromises).then(() =>
+        console.log("1/5 : plantsPromises done")
+      );
 
       plantsCount = plants.length;
 
       // 2.b. insertion de la liste des fournisseurs
-      const suppliersQuery = `INSERT INTO suppliers
+      const suppliersQuery = `
+        INSERT INTO suppliers
         SET
           id = :id,
           name = :name,
           comments = "",
           active = 1`;
 
-      // suppliers.forEach(async (supplier) => {
+      const suppliersPromises = [];
+
       for (const supplier of suppliers) {
-        await mysql.execute(suppliersQuery, supplier);
+        suppliersPromises.push(mysql.execute(suppliersQuery, supplier));
       }
-      // });
+
+      Promise.all(suppliersPromises).then(() =>
+        console.log("2/5 : suppliersPromises done")
+      );
 
       suppliersCount = suppliers.length;
 
@@ -312,9 +327,15 @@ export const actions = {
             supplierReference = :supplierReference,
             comments = ""`;
 
+      const suppliersOrdersPromises = [];
+
       for (const order of orders) {
-        await mysql.execute(ordersQuery, order);
+        suppliersOrdersPromises.push(mysql.execute(ordersQuery, order));
       }
+
+      Promise.all(suppliersOrdersPromises).then(() =>
+        console.log("3/5 : suppliersOrdersPromises done")
+      );
 
       ordersCount = orders.length;
 
@@ -329,12 +350,20 @@ export const actions = {
             cost = :cost,
             vat = :vat`;
 
+      const suppliersOrdersContentsPromises = [];
+
       for (const contentsLine of ordersContents) {
-        await mysql.execute(ordersContentsQuery, contentsLine);
+        suppliersOrdersContentsPromises.push(
+          mysql.execute(ordersContentsQuery, contentsLine)
+        );
       }
 
+      Promise.all(suppliersOrdersContentsPromises).then(() =>
+        console.log("4/5 : suppliersOrdersContentsPromises done")
+      );
+
       // 2.e. insertion des lots de chaque commande fournisseur
-      const ordersBatchesQuery = `
+      const batchesQuery = `
           INSERT INTO batches
           SET
             id = :id,
@@ -345,17 +374,40 @@ export const actions = {
             expiryDate = :expiryDate,
             quantity = :quantity`;
 
+      const batchesPromises = [];
+
       for (const batchLine of ordersRaw) {
-        await mysql.execute(ordersBatchesQuery, {
-          id: nanoid(), // id
-          ...batchLine,
-        });
+        batchesPromises.push(
+          mysql.execute(batchesQuery, {
+            id: nanoid(), // id
+            ...batchLine,
+          })
+        );
       }
+
+      Promise.all(batchesPromises).then(() =>
+        console.log("5/5 : batchesPromises done")
+      );
+
+      await Promise.all([
+        ...plantsPromises,
+        ...suppliersPromises,
+        ...suppliersOrdersPromises,
+        ...suppliersOrdersContentsPromises,
+        ...batchesPromises,
+      ]);
+
+      console.log("All done");
+
+      await mysql.query(`SET FOREIGN_KEY_CHECKS = 1`);
 
       await mysql.commit();
 
+      mysql.unprepare(plantsQuery);
       mysql.unprepare(suppliersQuery);
       mysql.unprepare(ordersQuery);
+      mysql.unprepare(ordersContentsQuery);
+      mysql.unprepare(batchesQuery);
     } catch (err) {
       await mysql.rollback();
 
@@ -381,7 +433,6 @@ export const actions = {
    */
   deleteAllData: async () => {
     const queries = [
-      "SET FOREIGN_KEY_CHECKS = 0;",
       "TRUNCATE TABLE customersOrdersBagsContents;",
       "TRUNCATE TABLE customersOrdersBags;",
       "TRUNCATE TABLE customersOrders;",
@@ -391,15 +442,22 @@ export const actions = {
       "TRUNCATE TABLE suppliersOrders;",
       "TRUNCATE TABLE suppliers;",
       "TRUNCATE TABLE plants;",
-      "SET FOREIGN_KEY_CHECKS = 1;",
     ];
 
     try {
       await mysql.beginTransaction();
 
+      await mysql.query(`SET FOREIGN_KEY_CHECKS = 0`);
+
+      const queriesPromises = [];
+
       for (const query of queries) {
-        await mysql.query(query);
+        queriesPromises.push(mysql.query(query));
       }
+
+      await Promise.all(queriesPromises);
+
+      await mysql.query(`SET FOREIGN_KEY_CHECKS = 1`);
 
       await mysql.commit();
 
