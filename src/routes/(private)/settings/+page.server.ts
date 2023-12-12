@@ -31,27 +31,35 @@ export const actions = {
       .filter(({ name }) => name !== "");
 
     try {
-      await mysql.beginTransaction();
-
-      const customersPromises = [];
-
-      const query = `INSERT INTO customers
-        SET
-          id = :id,
-          name = :name,
-          pro = :pro,
-          comments = "",
-          active = 1`;
+      let customersQuery = `
+        INSERT INTO customers
+        (id, name, pro, comments, active)
+        VALUES `;
 
       for (const customer of customers) {
-        customersPromises.push(mysql.execute(query, customer));
+        customersQuery += `(
+          "${customer.id}",
+          "${customer.name}",
+          ${customer.pro ? 1 : 0},
+          "",
+          1
+        ),`;
       }
 
-      await Promise.all(customersPromises);
+      // Replacement de la dernière virgule
+      customersQuery = customersQuery.replace(/,$/, ";");
+
+      await mysql.beginTransaction();
+
+      const customersPromise = mysql.query(customersQuery);
+
+      await Promise.all([customersPromise]);
+
+      console.log("All done");
 
       await mysql.commit();
 
-      mysql.unprepare(query);
+      mysql.unprepare(customersQuery);
     } catch (err) {
       await mysql.rollback();
 
@@ -154,7 +162,13 @@ export const actions = {
        *      b. chaque founisseur
        *      c. chaque commande (= groupe de lots d'une même commande)
        *      d. chaque ligne de contenu par commande (= combo commande/plante/coût/TVA)
-       * 2. insertion dans la base de données :
+       * 2. création des requêtes SQL
+       *      a. plantes
+       *      b. fournisseurs
+       *      c. commandes
+       *      d. lignes de contenu des commandes
+       *      e. lots des commandes
+       * 3. insertion dans la base de données :
        *      a. liste des plantes
        *      b. liste des fournisseurs
        *      c. liste des commandes
@@ -271,131 +285,116 @@ export const actions = {
         });
       });
 
+      // 2. Création des requêtes SQL
+
+      // 2.a. Plantes
+      let plantsQuery = `INSERT INTO plants (id, name, unit) VALUES `;
+
+      for (const plant of plants) {
+        plantsQuery += `("${plant.id}", "${plant.name}", "${plant.unit}"),`;
+      }
+
+      // Replacement de la dernière virgule
+      plantsQuery = plantsQuery.replace(/,$/, ";");
+
+      plantsCount = plants.length;
+
+      // 2.b. Fournisseurs
+      let suppliersQuery = `INSERT INTO suppliers (id, name, comments, active) VALUES `;
+
+      for (const supplier of suppliers) {
+        suppliersQuery += `("${supplier.id}", "${supplier.name}", "", 1),`;
+      }
+
+      // Replacement de la dernière virgule
+      suppliersQuery = suppliersQuery.replace(/,$/, ";");
+
+      suppliersCount = suppliers.length;
+
+      // 2.c. Commandes
+      let ordersQuery = `
+        INSERT INTO suppliersOrders
+        (id, supplierId, orderDate, deliveryDate, supplierReference, comments)
+        VALUES `;
+
+      for (const order of orders) {
+        ordersQuery += `(
+          "${order.id}",
+          "${order.supplierId}",
+          ${order.orderDate ? "'" + order.orderDate + "'" : null},
+          ${order.deliveryDate ? "'" + order.deliveryDate + "'" : null},
+          "${order.supplierReference}",
+          ""
+          ),`;
+      }
+
+      // Replacement de la dernière virgule
+      ordersQuery = ordersQuery.replace(/,$/, ";");
+
+      ordersCount = orders.length;
+
+      // 2.d. Lignes de contenu
+      let ordersContentsQuery = `
+          INSERT INTO suppliersOrdersContents
+          (id, orderId, plantId, quantity, cost, vat)
+          VALUES `;
+
+      for (const contentsLine of ordersContents) {
+        ordersContentsQuery += `(
+          "${contentsLine.id}",
+          "${contentsLine.orderId}",
+          "${contentsLine.plantId}",
+          ${contentsLine.quantity},
+          ${contentsLine.cost},
+          ${contentsLine.vat}
+        ),`;
+      }
+
+      // Replacement de la dernière virgule
+      ordersContentsQuery = ordersContentsQuery.replace(/,$/, ";");
+
+      // 2.e. Lots
+      let batchesQuery = `
+      INSERT INTO batches
+      ( id,
+        suppliersContentsId,
+        batchNumberSupplier,
+        batchNumberPhytessence,
+        phytBatchIsSupplierBatch,
+        expiryDate,
+        quantity
+      ) VALUES `;
+
+      for (const batchLine of ordersRaw) {
+        batchesQuery += `(
+          "${nanoid()}",
+          "${batchLine.contentsId}",
+          "${batchLine.batchNumberSupplier}",
+          "${batchLine.batchNumberPhytessence}",
+          ${batchLine.phytBatchIsSupplierBatch ? 1 : 0},
+          ${batchLine.expiryDate ? "'" + batchLine.expiryDate + "'" : null},
+          ${batchLine.quantity}
+        ),`;
+      }
+
+      // Replacement de la dernière virgule
+      batchesQuery = batchesQuery.replace(/,$/, ";");
+
+      // 3. Insertion en base de données
+
       await mysql.beginTransaction();
 
       await mysql.query(`SET FOREIGN_KEY_CHECKS = 0`);
 
-      const plantsPromises = [];
-
-      // 2.a. insertion de la liste des plantes
-      const plantsQuery = `
-        INSERT INTO plants
-        SET
-          id = :id,
-          name = :name,
-          unit = :unit`;
-
-      for (const plant of plants) {
-        plantsPromises.push(mysql.execute(plantsQuery, plant));
-      }
-
-      Promise.all(plantsPromises).then(() =>
-        console.log("1/5 : plantsPromises done")
+      await mysql.query(
+        [
+          plantsQuery,
+          suppliersQuery,
+          ordersQuery,
+          ordersContentsQuery,
+          batchesQuery,
+        ].join("")
       );
-
-      plantsCount = plants.length;
-
-      // 2.b. insertion de la liste des fournisseurs
-      const suppliersQuery = `
-        INSERT INTO suppliers
-        SET
-          id = :id,
-          name = :name,
-          comments = "",
-          active = 1`;
-
-      const suppliersPromises = [];
-
-      for (const supplier of suppliers) {
-        suppliersPromises.push(mysql.execute(suppliersQuery, supplier));
-      }
-
-      Promise.all(suppliersPromises).then(() =>
-        console.log("2/5 : suppliersPromises done")
-      );
-
-      suppliersCount = suppliers.length;
-
-      // 2.c. insertion des commandes fournisseurs
-      const ordersQuery = `
-          INSERT INTO suppliersOrders
-          SET
-            id = :id,
-            supplierId = :supplierId,
-            orderDate = :orderDate,
-            deliveryDate = :deliveryDate,
-            supplierReference = :supplierReference,
-            comments = ""`;
-
-      const suppliersOrdersPromises = [];
-
-      for (const order of orders) {
-        suppliersOrdersPromises.push(mysql.execute(ordersQuery, order));
-      }
-
-      Promise.all(suppliersOrdersPromises).then(() =>
-        console.log("3/5 : suppliersOrdersPromises done")
-      );
-
-      ordersCount = orders.length;
-
-      // 2.d. insertion des lignes de contenu dans chaque commande fournisseur
-      const ordersContentsQuery = `
-          INSERT INTO suppliersOrdersContents
-          SET
-            id = :id,
-            orderId = :orderId,
-            plantId = :plantId,
-            quantity = :quantity,
-            cost = :cost,
-            vat = :vat`;
-
-      const suppliersOrdersContentsPromises = [];
-
-      for (const contentsLine of ordersContents) {
-        suppliersOrdersContentsPromises.push(
-          mysql.execute(ordersContentsQuery, contentsLine)
-        );
-      }
-
-      Promise.all(suppliersOrdersContentsPromises).then(() =>
-        console.log("4/5 : suppliersOrdersContentsPromises done")
-      );
-
-      // 2.e. insertion des lots de chaque commande fournisseur
-      const batchesQuery = `
-          INSERT INTO batches
-          SET
-            id = :id,
-            suppliersContentsId = :contentsId,
-            batchNumberSupplier = :batchNumberSupplier,
-            batchNumberPhytessence = :batchNumberPhytessence,
-            phytBatchIsSupplierBatch = :phytBatchIsSupplierBatch,
-            expiryDate = :expiryDate,
-            quantity = :quantity`;
-
-      const batchesPromises = [];
-
-      for (const batchLine of ordersRaw) {
-        batchesPromises.push(
-          mysql.execute(batchesQuery, {
-            id: nanoid(), // id
-            ...batchLine,
-          })
-        );
-      }
-
-      Promise.all(batchesPromises).then(() =>
-        console.log("5/5 : batchesPromises done")
-      );
-
-      await Promise.all([
-        ...plantsPromises,
-        ...suppliersPromises,
-        ...suppliersOrdersPromises,
-        ...suppliersOrdersContentsPromises,
-        ...batchesPromises,
-      ]);
 
       console.log("All done");
 
@@ -432,30 +431,24 @@ export const actions = {
    * Supprimer toutes les données.
    */
   deleteAllData: async () => {
-    const queries = [
-      "TRUNCATE TABLE customersOrdersBagsContents;",
-      "TRUNCATE TABLE customersOrdersBags;",
-      "TRUNCATE TABLE customersOrders;",
-      "TRUNCATE TABLE customers;",
-      "TRUNCATE TABLE batches;",
-      "TRUNCATE TABLE suppliersOrdersContents;",
-      "TRUNCATE TABLE suppliersOrders;",
-      "TRUNCATE TABLE suppliers;",
-      "TRUNCATE TABLE plants;",
-    ];
+    const queries = `
+      TRUNCATE TABLE customersOrdersBagsContents;
+      TRUNCATE TABLE customersOrdersBags;
+      TRUNCATE TABLE customersOrders;
+      TRUNCATE TABLE customers;
+      TRUNCATE TABLE batches;
+      TRUNCATE TABLE suppliersOrdersContents;
+      TRUNCATE TABLE suppliersOrders;
+      TRUNCATE TABLE suppliers;
+      TRUNCATE TABLE plants;
+      `;
 
     try {
       await mysql.beginTransaction();
 
       await mysql.query(`SET FOREIGN_KEY_CHECKS = 0`);
 
-      const queriesPromises = [];
-
-      for (const query of queries) {
-        queriesPromises.push(mysql.query(query));
-      }
-
-      await Promise.all(queriesPromises);
+      await mysql.query(queries);
 
       await mysql.query(`SET FOREIGN_KEY_CHECKS = 1`);
 

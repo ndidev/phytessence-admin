@@ -24,6 +24,7 @@ const connectionUri = DATABASE_URL
 const options = {
   dateStrings: true,
   namedPlaceholders: true,
+  multipleStatements: true,
 } satisfies mysql.ConnectionOptions;
 
 const config = { ...connectionUri, ...options };
