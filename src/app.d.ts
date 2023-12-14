@@ -125,7 +125,7 @@ declare global {
     active: boolean;
   };
 
-  type RecipeBag = Recipe["bags"][0];
+  type RecipeBag = Recipe["bags"][number];
 
   /**
    * Client.
@@ -207,7 +207,7 @@ declare global {
   /**
    * Sachet d'une commande client.
    */
-  type CustomerOrderBag = CustomerOrder["bags"][0];
+  type CustomerOrderBag = CustomerOrder["bags"][number];
 
   /**
    * Commande fournisseur.
@@ -247,7 +247,7 @@ declare global {
         /** Identifiant de la ligne. */
         id: ID;
         /** Identifiant de la ligne de contenu. */
-        suppliersContentsId: SupplierOrder["contents"][0]["id"];
+        suppliersContentsId: SupplierOrder["contents"][number]["id"];
         /** Numéro de lot fournisseur. */
         batchNumberSupplier: string;
         /** Numéro de lot Phyt'Essence. */
@@ -265,8 +265,8 @@ declare global {
     comments: string;
   };
 
-  type SupplierOrderContents = SupplierOrder["contents"][0];
-  type Batch = SupplierOrderContents["batches"][0];
+  type SupplierOrderContents = SupplierOrder["contents"][number];
+  type Batch = SupplierOrderContents["batches"][number];
 
   type PlantAutocomplete = Required<Pick<Plant, "id" | "name" | "unit">>;
   type SupplierAutocomplete = Required<Pick<Supplier, "id" | "name">>;

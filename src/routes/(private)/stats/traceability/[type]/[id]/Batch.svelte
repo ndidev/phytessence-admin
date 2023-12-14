@@ -3,21 +3,21 @@
 
   type Data = {
     supplierOrder: {
-      batchNumberPhytessence: string;
-      plantName: string;
-      batchNumberSupplier: string;
+      batchNumberPhytessence: Batch["batchNumberPhytessence"];
+      plantName: Plant["name"];
+      batchNumberSupplier: Batch["batchNumberSupplier"];
       supplierName: Supplier["name"];
-      orderDate: string;
-      deliveryDate: string;
-      supplierReference: string;
+      orderDate: SupplierOrder["orderDate"];
+      deliveryDate: SupplierOrder["orderDate"];
+      supplierReference: SupplierOrder["supplierReference"];
     };
     customersOrders: {
-      customerName: string;
+      customerName: Customer["name"];
       orders: {
         orderDate: CustomerOrder["orderDate"];
         bags: {
-          bagNumber: CustomerOrder["bags"][0]["number"];
-          quantity: number;
+          bagNumber: CustomerOrder["bags"][number]["number"];
+          quantity: Quantity;
           unit: Plant["unit"];
         }[];
       }[];
@@ -66,10 +66,11 @@
             <!-- Sachets -->
             {#each order.bags as bag}
               <li>
-                Sachet numéro {bag.bagNumber} - {formatQuantity(
-                  bag.quantity,
-                  bag.unit
-                )}
+                Sachet numéro <a
+                  href="/stats/traceability/bag/{bag.bagNumber}"
+                  class="underline">{bag.bagNumber}</a
+                >
+                - {formatQuantity(bag.quantity, bag.unit)}
               </li>
             {/each}
           </ul>

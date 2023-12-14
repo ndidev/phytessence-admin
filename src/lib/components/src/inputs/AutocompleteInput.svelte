@@ -52,7 +52,7 @@
   } satisfies PopupSettings;
 
   function onSelection(event: CustomEvent<AutocompleteOption>): void {
-    const selectedId = event.detail.value as (typeof data)[0]["id"];
+    const selectedId = event.detail.value as (typeof data)[number]["id"];
     value = selectedId;
     searchTerm = data.find(({ id }) => selectedId === id)?.name || "";
   }

@@ -52,7 +52,7 @@ export const load = (async ({ fetch, params }) => {
         {
           contentsIds: contents.map(({ id }) => id),
         }
-      )) as unknown as Array<SupplierOrder["contents"][0]["batches"]>;
+      )) as unknown as Array<SupplierOrder["contents"][number]["batches"]>;
 
       contents.forEach((content) => {
         content.batches = batchesRows.filter(

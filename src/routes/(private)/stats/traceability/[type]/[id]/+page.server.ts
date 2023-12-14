@@ -18,26 +18,42 @@ export const load = (async ({ params }) => {
   const types = ["batch", "bag", "sb"] as const;
   type ItemType = (typeof types)[number];
 
-  if (!params.id || !types.includes(params.type as ItemType)) {
+  try {
+    if (!params.id) {
+      throw new Error("id non fourni");
+    }
+
+    if (!types.includes(params.type as ItemType)) {
+      throw new Error("Type inconnu");
+    }
+
+    switch (params.type as ItemType) {
+      case "batch":
+        item = await getBatchData(params.id);
+        break;
+
+      case "bag":
+        item = await getBagData(params.id);
+        break;
+
+      case "sb":
+        item = await getSupplierBatchData(params.id);
+        break;
+
+      default:
+        throw new Error("Type inconnu");
+    }
+  } catch (err) {
+    console.error(err);
+
     return redirect(302, "/stats/traceability");
   }
 
-  switch (params.type as ItemType) {
-    case "batch":
-      item = await getBatchData(params.id);
-      break;
+  console.log(JSON.stringify(item, null, 2));
 
-    case "bag":
-      item = await getBagData(params.id);
-      break;
-
-    case "sb":
-      item = await getSupplierBatchData(params.id);
-      break;
-
-    default:
-      return redirect(302, "/stats/traceability");
-  }
+  return {
+    item,
+  };
 
   // Fonctions
 
@@ -62,10 +78,6 @@ export const load = (async ({ params }) => {
         b.id = :id
       `;
 
-    const supplierOrderDataResult = mysql.execute(supplierOrderDataSql, {
-      id,
-    });
-
     const customersOrdersDataSql = `
       SELECT
         c.id as customerId,
@@ -87,17 +99,19 @@ export const load = (async ({ params }) => {
         bagNumber
     `;
 
-    const customersOrdersResult = mysql.execute(customersOrdersDataSql, {
+    const supplierOrderDataPromise = mysql.execute(supplierOrderDataSql, {
       id,
     });
 
-    const supplierOrderData = (
-      (await supplierOrderDataResult) as Array<any>
-    )[0][0];
+    const customersOrdersPromise = mysql.execute(customersOrdersDataSql, {
+      id,
+    });
 
-    const customersOrdersRows = (
-      (await customersOrdersResult) as Array<any>
+    const [supplierOrderData] = (
+      (await supplierOrderDataPromise) as Array<any>
     )[0];
+
+    const [customersOrdersRows] = (await customersOrdersPromise) as Array<any>;
 
     // Regrouper les commandes clients par client
     const customersIdsDone: ID[] = [];
@@ -154,15 +168,55 @@ export const load = (async ({ params }) => {
   async function getBagData(id: ID): Promise<Item> {
     const category = "Sachet";
 
-    const sql = `SELECT * FROM customersOrdersBags WHERE id = :id`;
+    const orderSql = `
+      SELECT
+        co.orderDate,
+        c.name as customerName
+      FROM customersOrders co
+      JOIN customers c ON co.customerId = c.id
+      WHERE co.id = (
+        SELECT cob.orderId
+        FROM customersOrdersBags cob
+        WHERE cob.id = :id
+      )
+    `;
 
-    const [dataRows] = (await mysql.execute(sql, { id })) as unknown as Array<
-      CustomerOrderBag[]
-    >;
+    const bagSql = `SELECT * FROM customersOrdersBags WHERE id = :id`;
 
-    const data = dataRows[0];
+    const contentsSql = `
+      SELECT
+        cobc.*,
+        p.name as plantName,
+        p.unit,
+        b.batchNumberPhytessence
+      FROM customersOrdersBagsContents cobc
+      JOIN plants p ON p.id = cobc.plantId
+      JOIN batches b ON cobc.batchId = b.id
+      WHERE cobc.bagId = :id
+      ORDER BY p.name`;
 
-    const name = data.number;
+    const orderPromise = mysql.execute(orderSql, { id });
+    const bagPromise = mysql.execute(bagSql, { id });
+    const contentsPromise = mysql.execute(contentsSql, { id });
+
+    const [orderData] = ((await orderPromise) as Array<any>)[0];
+    const [bagData] = ((await bagPromise) as Array<any>)[0];
+    const [contentsData] = await contentsPromise;
+
+    if (!bagData) {
+      throw new Error("Sachet inconnu");
+    }
+
+    const data = {
+      customerOrder: {
+        orderId: bagData.orderId,
+        customerName: orderData.customerName,
+        orderDate: orderData.orderDate,
+      },
+      contents: contentsData,
+    };
+
+    const name = bagData.number;
 
     return {
       category,
@@ -176,13 +230,23 @@ export const load = (async ({ params }) => {
 
     const category = "Lot fournisseur";
 
-    const sql = `SELECT * FROM batches WHERE batchNumberSupplier = :batchNumber`;
+    const batchesSql = `SELECT * FROM batches WHERE batchNumberSupplier = :batchNumber`;
+    const plantsSql = `
+      SELECT
+        p.name,
+        p.unit
+      FROM plants p
+      WHERE p.id IN (
+        SELECT soc.plantId
+        FROM suppliersOrdersContents soc
+        JOIN batches b ON b.suppliersContentsId = soc.id
+        WHERE b.id = :batchId
+      )
+    `;
 
-    const [dataRows] = (await mysql.execute(sql, {
-      batchNumber,
-    })) as unknown as Array<Batch[]>;
+    const batchesPromise = mysql.execute(batchesSql, { batchNumber });
 
-    const data = dataRows;
+    const data = {};
 
     const name = batchNumber;
 
@@ -192,10 +256,4 @@ export const load = (async ({ params }) => {
       data,
     };
   }
-
-  console.log(JSON.stringify(item, null, 2));
-
-  return {
-    item,
-  };
 }) satisfies PageServerLoad;

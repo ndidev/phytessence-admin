@@ -52,7 +52,7 @@
     order = order;
   }
 
-  function deletePlant(contentsId: SupplierOrder["contents"][0]["id"]) {
+  function deletePlant(contentsId: SupplierOrder["contents"][number]["id"]) {
     if (isNewId(contentsId)) {
       _actualDelete();
     }

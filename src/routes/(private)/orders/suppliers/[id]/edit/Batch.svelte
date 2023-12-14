@@ -1,7 +1,7 @@
 <script lang="ts">
   import { QuantityInput, DateInput, TextInput } from "$lib/components";
 
-  export let batch: SupplierOrder["contents"][0]["batches"][0];
+  export let batch: SupplierOrder["contents"][number]["batches"][0];
   export let plant: PlantAutocomplete;
 
   /** Contents index - Index de la ligne de contenu */

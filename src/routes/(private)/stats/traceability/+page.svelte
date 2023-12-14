@@ -11,7 +11,7 @@
 
   // Local
   let searchTerm = "";
-  let searchType: (typeof searchTable)[0]["type"] = "bag";
+  let searchType: (typeof searchTable)[number]["type"] = "bag";
   let searchPlaceholder = "";
   let searchResults: typeof searchTable = [];
 

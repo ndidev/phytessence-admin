@@ -20,7 +20,7 @@
     bag = bag;
   }
 
-  function deleteBagContents(contentsId: RecipeBag["contents"][0]["id"]) {
+  function deleteBagContents(contentsId: RecipeBag["contents"][number]["id"]) {
     if (isNewId(contentsId)) {
       _actualDelete();
     }

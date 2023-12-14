@@ -3,7 +3,7 @@
 
   export let data: PageData;
 
-  $: item = data.item;
+  $: item = data.item || { category: "", name: "", data: {} };
 
   import { page } from "$app/stores";
   import { PageHeader } from "$lib/components";
@@ -11,13 +11,9 @@
   import Bag from "./Bag.svelte";
   import Batch from "./Batch.svelte";
   import SupplierBatch from "./SupplierBatch.svelte";
-  import SupplierOrder from "./SupplierOrder.svelte";
-  import CustomerOrder from "./CustomerOrder.svelte";
 
   const components = [
     { type: "batch", component: Batch },
-    { type: "so", component: SupplierOrder },
-    { type: "co", component: CustomerOrder },
     { type: "bag", component: Bag },
     { type: "sb", component: SupplierBatch },
   ];

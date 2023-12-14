@@ -23,7 +23,7 @@
   function addBatch() {
     contents.batches.push({
       id: createNewId(),
-      contentsId: contents.id as ID,
+      suppliersContentsId: contents.id,
       batchNumberSupplier: "",
       batchNumberPhytessence: "",
       phytBatchIsSupplierBatch: false,
@@ -34,9 +34,7 @@
     contents = contents;
   }
 
-  function deleteBatch(
-    batchId: SupplierOrder["contents"][0]["batches"][0]["id"]
-  ) {
+  function deleteBatch(batchId: Batch["id"]) {
     if (isNewId(batchId)) {
       _actualDelete();
     }

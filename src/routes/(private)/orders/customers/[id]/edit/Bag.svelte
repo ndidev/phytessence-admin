@@ -22,7 +22,7 @@
   }
 
   function deleteBagContents(
-    contentsId: CustomerOrderBag["contents"][0]["id"]
+    contentsId: CustomerOrderBag["contents"][number]["id"]
   ) {
     if (isNewId(contentsId)) {
       _actualDelete();
