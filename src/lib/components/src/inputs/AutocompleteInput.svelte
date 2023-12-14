@@ -105,5 +105,6 @@
     bind:input={searchTerm}
     options={autocompleteOptions}
     on:selection={onSelection}
+    emptyState="Aucun résultat trouvé"
   />
 </div>

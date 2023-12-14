@@ -10,6 +10,7 @@ export const load = (async () => {
     plant.inwards = parseFloat(plant.inwards);
     plant.expected = parseFloat(plant.expected);
     plant.outwards = parseFloat(plant.outwards);
+    plant.currentStock = parseFloat(plant.currentStock);
   });
 
   type PlantStats = {
@@ -19,6 +20,7 @@ export const load = (async () => {
     inwards: number;
     expected: number;
     outwards: number;
+    currentStock: number;
   };
 
   const plants = plantsRows as unknown as PlantStats[];

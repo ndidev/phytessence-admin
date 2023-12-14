@@ -8,7 +8,7 @@
   export let disabled: boolean | null | undefined = false;
 </script>
 
-<div class="input-group input-group-divider grid-cols-[auto_1fr_auto] mb-4">
+<div class="input-group input-group-divider grid-cols-[auto_1fr] mb-4">
   <div class="input-group-shim">
     <span class="material-symbols-outlined">search</span>
   </div>

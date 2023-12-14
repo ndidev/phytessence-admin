@@ -96,8 +96,8 @@ export const load = (async ({ params }) => {
   type OutwardStats = {
     orderId: CustomerOrder["id"];
     orderDate: string;
-    bagId: Bag["id"];
-    bagNumber: Bag["number"];
+    bagId: CustomerOrderBag["id"];
+    bagNumber: CustomerOrderBag["number"];
     batchId: ID;
     batchNumberPhytessence: Batch["batchNumberPhytessence"];
     quantity: Quantity;

@@ -11,7 +11,7 @@
       <hr />
       <li><a href="/stats/stocks">Stocks</a></li>
       <li><a href="/stats/traceability">Traçabilité</a></li>
-      <li><a href="/stats/costs">Coûts</a></li>
+      <!-- <li><a href="/stats/costs">Coûts</a></li> -->
       <hr />
       <li><a href="/products/plants">Plantes</a></li>
       <li><a href="/products/recipes">Recettes</a></li>

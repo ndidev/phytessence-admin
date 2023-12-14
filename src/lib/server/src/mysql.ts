@@ -32,8 +32,8 @@ const config = { ...connectionUri, ...options };
 const connection = await mysql.createConnection(config);
 
 connection.on("error", (err) => {
-  console.log("Erreur");
-  console.log(err);
+  console.error("Erreur");
+  console.error(err);
 });
 
 export { connection };

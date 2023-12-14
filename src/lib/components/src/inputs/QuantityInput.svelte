@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { afterUpdate } from "svelte";
   import { nanoid } from "$lib/utils";
 
   export let label = "Quantité";
@@ -13,20 +14,22 @@
   export let disabled: boolean | null | undefined = false;
   export let datalistId = "";
 
-  switch (unit) {
-    case "€":
-    case "%":
-      step = 0.01;
-      break;
+  afterUpdate(() => {
+    switch (unit) {
+      case "€":
+      case "%":
+        step = 0.01;
+        break;
 
-    case "unit":
-      step = 1;
-      break;
+      case "unit":
+        step = 1;
+        break;
 
-    default:
-      step = 0.001;
-      break;
-  }
+      default:
+        step ||= 0.001;
+        break;
+    }
+  });
 </script>
 
 <div>

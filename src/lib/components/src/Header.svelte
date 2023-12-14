@@ -1,9 +1,12 @@
 <script lang="ts">
+  import { getContext } from "svelte";
   import { AppBar } from "@skeletonlabs/skeleton";
 
   import { UserCard } from "$lib/components";
 
   export let titleOnly = false;
+
+  $: user = getContext<User>("user");
 </script>
 
 <AppBar
@@ -28,11 +31,13 @@
 
   <svelte:fragment slot="trail">
     {#if !titleOnly}
-      <a href="/settings"
-        ><span class="material-symbols-outlined text-3xl" title="Paramètres"
-          >settings</span
-        ></a
-      >
+      {#if user.super}
+        <a href="/settings"
+          ><span class="material-symbols-outlined text-3xl" title="Paramètres"
+            >settings</span
+          ></a
+        >
+      {/if}
 
       <UserCard />
     {/if}

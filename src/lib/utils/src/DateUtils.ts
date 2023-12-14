@@ -11,7 +11,9 @@ export class DateUtils {
   date: Date;
 
   constructor(date: Date | string = new Date()) {
-    this.date = typeof date === "string" ? new Date(date) : date;
+    if (typeof date === "string") date = new Date(date);
+
+    this.date = date;
   }
 
   /**
@@ -234,5 +236,16 @@ export class DateUtils {
       month: "long",
       day: "numeric",
     });
+  }
+
+  /**
+   * Retourne une date formattée en différent formats.
+   */
+  format(locale: Intl.LocalesArgument = defaultLocale) {
+    return {
+      iso: this.toLocaleISODateString(locale),
+      short: new Date(this.date).toLocaleDateString(locale),
+      long: this.toLongLocaleDateString(locale),
+    };
   }
 }

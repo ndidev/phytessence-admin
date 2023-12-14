@@ -1,9 +1,13 @@
 import type { PageServerLoad, Actions } from "./$types";
 import { mysql } from "$lib/server";
 import { nanoid } from "$lib/utils";
-import { fail } from "@sveltejs/kit";
+import { fail, redirect } from "@sveltejs/kit";
 
-export const load = (async () => {
+export const load = (async ({ locals }) => {
+  if (!locals.user?.super) {
+    throw redirect(302, "/");
+  }
+
   return {};
 }) satisfies PageServerLoad;
 
@@ -55,7 +59,7 @@ export const actions = {
 
       await Promise.all([customersPromise]);
 
-      console.log("All done");
+      console.log("Importation terminée");
 
       await mysql.commit();
 
@@ -396,7 +400,7 @@ export const actions = {
         ].join("")
       );
 
-      console.log("All done");
+      console.log("Importation terminée");
 
       await mysql.query(`SET FOREIGN_KEY_CHECKS = 1`);
 

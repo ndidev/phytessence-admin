@@ -85,7 +85,7 @@
   </div>
 
   <details
-    class=" p-2 ring-2 ring-primary-100 rounded hover:cursor-pointer"
+    class=" p-2 ring-2 ring-primary-100 rounded-container-token hover:cursor-pointer"
     open={form?.errors.currentPasswordMissing ||
       form?.errors.currentPasswordIncorrect ||
       form?.errors.passwordMismatch}

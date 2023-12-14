@@ -6,6 +6,7 @@
   import { setContext } from "svelte";
 
   import Bag from "./Bag.svelte";
+  import RecipeSelection from "./RecipeSelection.svelte";
 
   import { page } from "$app/stores";
   import { enhance } from "$app/forms";
@@ -21,15 +22,22 @@
     createNewId,
     isNewId,
     modalStore,
+    DateUtils,
   } from "$lib/utils";
 
-  let { order, customers, plants, batches, lastbagNumber } = data;
+  let { order, customers, plants, recipes, batches, lastbagNumber } = data;
 
   setContext("plants", plants);
   setContext("batches", batches);
 
   const isNew = !order.id;
   let submitting = false;
+
+  const customerName =
+    customers.find(({ id }) => id === order.customerId)?.name ||
+    "Client inconnu";
+
+  const formattedOrderDate = new DateUtils(order.orderDate).format();
 
   function addBag() {
     order.bags.push({
@@ -42,7 +50,7 @@
     order = order;
   }
 
-  function deleteBag(bagId: Bag["id"]) {
+  function deleteBag(bagId: CustomerOrderBag["id"]) {
     if (isNewId(bagId)) {
       _actualDelete();
     }
@@ -71,16 +79,54 @@
       order.bags = order.bags.filter(({ id }) => id !== bagId);
     }
   }
+
+  function addRecipe() {
+    $modalStore.trigger({
+      type: "component",
+      component: {
+        ref: RecipeSelection,
+        props: {
+          recipes,
+        },
+      },
+      response: (recipe: Recipe) => {
+        if (recipe) {
+          const addedBags: CustomerOrderBag[] = [];
+          recipe.bags.forEach(({ quantity, contents }) => {
+            for (let i = 0; i < quantity; i++) {
+              addedBags.push({
+                id: createNewId(),
+                orderId: order.id,
+                number: "~" + String(++lastbagNumber),
+                contents: contents.map(({ plantId, quantity }) => ({
+                  id: createNewId(),
+                  bagId: "",
+                  plantId,
+                  quantity,
+                  batchId: "",
+                })),
+              });
+            }
+          });
+          order.bags = [...order.bags, ...addedBags];
+        }
+      },
+    });
+  }
 </script>
 
 <PageHeader
-  title={isNew ? "Nouvelle commande" : "Commande client"}
+  title={isNew
+    ? "Nouvelle commande"
+    : customerName + " (" + formattedOrderDate.short + ")"}
   breadcrumbs={[
     { label: "Accueil", link: "/" },
     { label: "Commandes", link: "/orders" },
     { label: "Commandes clients", link: "/orders/customers" },
     {
-      label: isNew ? "Nouvelle commande" : "Commande client",
+      label: isNew
+        ? "Nouvelle commande"
+        : customerName + " (" + formattedOrderDate.short + ")",
       link: `/orders/customers/${$page.params.id || "new"}`,
     },
     {
@@ -133,7 +179,7 @@
   <div>
     <div class="h5 my-2">Sachets de la commande</div>
 
-    {#each order.bags as bag, bi (bi)}
+    {#each order.bags as bag, bi (bag.id)}
       <Bag {bag} {bi} on:click={() => deleteBag(bag.id)} />
     {:else}
       <div class="card p-2 mt-2">La commande est vide</div>
@@ -144,6 +190,13 @@
       class="btn variant-filled-primary mt-2"
       on:click={addBag}
       title="Ajouter un sachet">Ajouter un sachet</button
+    >
+
+    <button
+      type="button"
+      class="btn variant-filled-secondary mt-2"
+      on:click={addRecipe}
+      title="Ajouter une recette">Ajouter une recette</button
     >
   </div>
 

@@ -30,8 +30,10 @@
   modalStore.set(getModalStore());
   toastStore.set(getToastStore());
 
-  vercelAnalytics({ mode: dev ? "development" : "production" });
-  vercelSpeedInsight();
+  if (!dev) {
+    vercelAnalytics({ mode: dev ? "development" : "production" });
+    vercelSpeedInsight();
+  }
 </script>
 
 <svelte:head>

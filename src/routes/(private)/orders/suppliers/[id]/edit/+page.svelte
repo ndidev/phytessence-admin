@@ -22,6 +22,7 @@
     createNewId,
     modalStore,
     isNewId,
+    DateUtils,
   } from "$lib/utils";
 
   let { order, suppliers, plants } = data;
@@ -30,6 +31,12 @@
 
   const isNew = !order.id;
   let submitting = false;
+
+  const supplierName =
+    suppliers.find(({ id }) => id === order.supplierId)?.name ||
+    "Fournisseur inconnu";
+
+  const formattedOrderDate = new DateUtils(order.orderDate).format();
 
   function addPlant() {
     order.contents.push({
@@ -77,13 +84,17 @@
 </script>
 
 <PageHeader
-  title={isNew ? "Nouvelle commande" : "Commande fournisseur"}
+  title={isNew
+    ? "Nouvelle commande"
+    : supplierName + " (" + formattedOrderDate.short + ")"}
   breadcrumbs={[
     { label: "Accueil", link: "/" },
     { label: "Commandes", link: "/orders" },
     { label: "Commandes fournisseurs", link: "/orders/suppliers" },
     {
-      label: isNew ? "Nouvelle commande" : "Commande fournisseur",
+      label: isNew
+        ? "Nouvelle commande"
+        : supplierName + " (" + formattedOrderDate.short + ")",
       link: `/orders/suppliers/${$page.params.id || "new"}`,
     },
     {

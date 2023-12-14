@@ -14,14 +14,31 @@
   ]}
 />
 
-<p>
-  <a href="/stats/stocks">Stocks</a>
-</p>
-
-<p>
-  <a href="/stats/traceability">Traçabilité</a>
-</p>
-
-<p>
-  <a href="/stats/costs">Coûts</a>
-</p>
+<nav class="list-nav">
+  <ul>
+    <li>
+      <a href="/stats/stocks">
+        <span class="badge bg-primary-50 material-symbols-outlined"
+          >arrow_forward</span
+        >
+        <span class="flex-auto">Stocks</span>
+      </a>
+    </li>
+    <li>
+      <a href="/stats/traceability">
+        <span class="badge bg-primary-50 material-symbols-outlined"
+          >arrow_forward</span
+        >
+        <span class="flex-auto">Traçabilité</span>
+      </a>
+    </li>
+    <!-- <li>
+      <a href="/stats/costs">
+        <span class="badge bg-primary-50 material-symbols-outlined"
+          >arrow_forward</span
+        >
+        <span class="flex-auto">Coûts</span>
+      </a>
+    </li> -->
+  </ul>
+</nav>

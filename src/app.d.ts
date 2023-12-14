@@ -51,6 +51,11 @@ declare global {
      * Nom de l'utilisateur.
      */
     name: string;
+
+    /**
+     * Super administrateur.
+     */
+    super: boolean;
   };
 
   type ID = string;
@@ -93,17 +98,34 @@ declare global {
     /** Description de la recette. */
     description: string;
 
-    /** Lignes de la recette. */
-    lines: {
-      /** Identifiant de la plante. */
-      plantId: Required<Plant>["id"];
-      /** Quantité. */
+    /** Sachets de la recette. */
+    bags: {
+      /** Identifiant du sachet. */
+      id: ID;
+      /** Identifiant de la recete. */
+      recipeId: Recipe["id"];
+      /** Ordre (position) du sachet. */
+      number: number;
+      /** Nombre de sachets dans la recette. */
       quantity: Quantity;
+      /** Contenu du sachet. */
+      contents: {
+        /** Identifiant de la ligne de contenu. */
+        id: ID;
+        /** Identifiant du sachet. */
+        bagId: RecipeBag["id"];
+        /** Identifiant de la plante. */
+        plantId: Required<Plant>["id"];
+        /** Quantité. */
+        quantity: Quantity;
+      }[];
     }[];
 
-    /** Commentaires. */
-    comments: string;
+    /** Afficher ou non la recette dans les listes de choix. */
+    active: boolean;
   };
+
+  type RecipeBag = Recipe["bags"][0];
 
   /**
    * Client.
@@ -168,7 +190,7 @@ declare global {
         /** Identifiant de la ligne de contenu. */
         id: ID;
         /** Identifiant du sachet. */
-        bagId: Bag["id"];
+        bagId: CustomerOrderBag["id"];
         /** identifiant de la plante. */
         plantId: Required<Plant>["id"];
         /** Quantité. */
@@ -185,7 +207,7 @@ declare global {
   /**
    * Sachet d'une commande client.
    */
-  type Bag = CustomerOrder["bags"][0];
+  type CustomerOrderBag = CustomerOrder["bags"][0];
 
   /**
    * Commande fournisseur.

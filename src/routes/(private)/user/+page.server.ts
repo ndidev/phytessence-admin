@@ -78,8 +78,9 @@ export const actions = {
         id: locals.user.id,
         login,
         email,
-        name,
         password: bcrypt.hashSync(newPassword, 10),
+        name,
+        super: locals.user.super,
       };
 
       try {

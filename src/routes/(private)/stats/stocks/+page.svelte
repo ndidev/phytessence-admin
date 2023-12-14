@@ -30,13 +30,13 @@
         paginationSettings.page * paginationSettings.limit +
           paginationSettings.limit
       )
-      .map(({ name, unit, inwards, expected, outwards }) => {
+      .map(({ name, unit, inwards, expected, outwards, currentStock }) => {
         return [
           name,
           formatQuantity(inwards, unit) +
             (expected ? ` (+${formatQuantity(expected, unit)})` : ""),
           formatQuantity(outwards, unit),
-          formatQuantity(inwards - outwards, unit),
+          formatQuantity(currentStock, unit),
         ];
       }),
     meta: plantsArray
@@ -85,7 +85,7 @@
         return normalize(searchTerm)
           .split(" ")
           .map((needle) => haystack.includes(needle))
-          .some((needleFound) => needleFound === true);
+          .every((needleFound) => needleFound === true);
       });
     }
 
@@ -110,7 +110,7 @@
   on:input={() => searchPlant(searchInputValue)}
 />
 
-<div class="">
+<div class="stocks">
   <Table
     source={tableSource}
     interactive={true}
@@ -125,3 +125,11 @@
     on:amount={onAmountChange}
   />
 </div>
+
+<style>
+  @media (max-width: 600px) {
+    :global(.stocks table.table :is(td, th):is(:nth-child(2), :nth-child(3))) {
+      display: none;
+    }
+  }
+</style>

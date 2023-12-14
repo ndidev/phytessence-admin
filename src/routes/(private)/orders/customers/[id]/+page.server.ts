@@ -32,26 +32,29 @@ export const load = (async ({ fetch, params }) => {
       {
         orderId: order.id,
       }
-    )) as unknown as Array<Bag[]>;
+    )) as unknown as Array<CustomerOrderBag[]>;
 
     const bagsIds = bagsRows.map(({ id }) => id);
 
-    let bagsContentsResult: Bag["contents"] = [];
+    let bagsContentsResult: CustomerOrderBag["contents"] = [];
 
     // Contenu des sachets
     if (bagsIds.length > 0) {
       const [bagsContentsRows] = await mysql.query(
-        `SELECT *
+        `SELECT cobc.*
           FROM customersOrdersBagsContents cobc
           JOIN plants p ON p.id = cobc.plantId
+          JOIN batches b ON cobc.batchId = b.id
           WHERE cobc.bagId IN (:bagsIds)
-          ORDER BY p.name`,
+          ORDER BY
+            p.name,
+            b.batchNumberPhytessence`,
         {
           bagsIds,
         }
       );
 
-      bagsContentsResult = bagsContentsRows as Bag["contents"];
+      bagsContentsResult = bagsContentsRows as CustomerOrderBag["contents"];
     }
 
     // Lier le contenu des sachets aux sachets

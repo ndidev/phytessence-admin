@@ -43,14 +43,15 @@
   {#each details.inward as line}
     <div>
       {line.deliveryDate} :
-      <a href="/stats/traceability/batch/{line.batchId}"
+      <a href="/stats/traceability/batch/{line.batchId}" class="underline"
         >{line.batchNumberPhytessence}</a
       >
       {#if line.batchNumberSupplier}
         (<a
           href="/stats/traceability/sb/{encodeURIComponent(
             line.batchNumberSupplier
-          )}">{line.batchNumberSupplier}</a
+          )}"
+          class="underline">{line.batchNumberSupplier}</a
         >)
       {:else}
         (lot fournisseur non renseigné)
@@ -68,13 +69,12 @@
   {#each details.outward as line}
     <div>
       {line.orderDate} :
-      <a href="/stats/traceability/batch/{line.batchId}"
+      <a href="/stats/traceability/batch/{line.batchId}" class="underline"
         >{line.batchNumberPhytessence}</a
       >
-      (<a href="/stats/traceability/bag/{line.bagId}">{line.bagNumber}</a>) - {formatQuantity(
-        line.quantity,
-        plant.unit
-      )}
+      (<a href="/stats/traceability/bag/{line.bagId}" class="underline"
+        >{line.bagNumber}</a
+      >) - {formatQuantity(line.quantity, plant.unit)}
     </div>
   {:else}
     <div>Aucune sortie trouvée</div>

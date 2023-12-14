@@ -1,11 +1,11 @@
 <script lang="ts">
   import BagContents from "./BagContents.svelte";
 
-  import { ConfirmModal } from "$lib/components";
+  import { ConfirmModal, QuantityInput } from "$lib/components";
 
   import { createNewId, isNewId, modalStore } from "$lib/utils";
 
-  export let bag: CustomerOrderBag;
+  export let bag: RecipeBag;
   /** Bag index - Index de la ligne de sachet */
   export let bi: number;
 
@@ -15,15 +15,12 @@
       bagId: bag.id,
       plantId: "",
       quantity: 0,
-      batchId: "",
     });
 
     bag = bag;
   }
 
-  function deleteBagContents(
-    contentsId: CustomerOrderBag["contents"][0]["id"]
-  ) {
+  function deleteBagContents(contentsId: RecipeBag["contents"][0]["id"]) {
     if (isNewId(contentsId)) {
       _actualDelete();
     }
@@ -52,9 +49,6 @@
       bag.contents = bag.contents.filter(({ id }) => id !== contentsId);
     }
   }
-
-  let tempBagNumber = bag.number.startsWith("~");
-  let bagNumber = bag.number.replace("~", "");
 </script>
 
 <div class="card my-2 p-4">
@@ -62,22 +56,14 @@
     <input type="hidden" name="bags.{bi}.id" value={bag.id} readonly />
 
     <div class="h6 mt-2">
-      Sachet n°<input
-        class="input-bag-number"
-        type="text"
-        style:width="{bagNumber.length}ch"
-        bind:value={bagNumber}
-        on:input={() => (tempBagNumber = false)}
-      />
-      {#if tempBagNumber}
-        <span>(numéro temporaire)</span>
-      {/if}
+      Sachet n°{bag.number}
     </div>
-    <input
-      type="hidden"
-      name="bags.{bi}.number"
-      value={tempBagNumber ? "" : bagNumber}
-      readonly
+
+    <QuantityInput
+      name="bags.{bi}.quantity"
+      value={bag.quantity}
+      step={1}
+      required
     />
 
     {#each bag.contents as contents, ci (contents.id)}
@@ -102,14 +88,3 @@
     >Supprimer ce sachet de la commande</button
   >
 </div>
-
-<style>
-  .input-bag-number {
-    @apply shadow-none ring-0 border-0 bg-transparent p-0;
-  }
-
-  .input-bag-number:hover,
-  .input-bag-number:focus {
-    @apply bg-primary-200;
-  }
-</style>

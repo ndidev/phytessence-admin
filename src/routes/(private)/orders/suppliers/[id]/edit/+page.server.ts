@@ -1,9 +1,9 @@
 import type { PageServerLoad, Actions } from "./$types";
 import { error, fail } from "@sveltejs/kit";
 import { mysql } from "$lib/server";
-import { isNewId, nanoid, parseFormData } from "$lib/utils";
+import { createNewId, isNewId, nanoid, parseFormData } from "$lib/utils";
 
-export const load = (async ({ fetch, params }) => {
+export const load = (async ({ fetch, params, url }) => {
   // Récupération d'une commande, ou nouvelle commande
   let order: SupplierOrder = {
     id: "",
@@ -15,10 +15,14 @@ export const load = (async ({ fetch, params }) => {
     comments: "",
   };
 
-  if (params.id !== "new") {
+  const copy = url.searchParams.get("copy");
+
+  const orderId = params.id === "new" ? copy : params.id;
+
+  if (orderId) {
     const [orderRows] = await mysql.execute(
-      `SELECT * FROM suppliersOrders WHERE id = :id`,
-      { id: params.id }
+      `SELECT * FROM suppliersOrders WHERE id = :orderId`,
+      { orderId }
     );
 
     const orderResult = orderRows as SupplierOrder[];
@@ -37,7 +41,7 @@ export const load = (async ({ fetch, params }) => {
         WHERE orderId = :orderId
         ORDER BY p.name`,
       {
-        orderId: order.id,
+        orderId,
       }
     )) as unknown as Array<SupplierOrder["contents"]>;
 
@@ -61,6 +65,17 @@ export const load = (async ({ fetch, params }) => {
       });
 
       order.contents = contents;
+    }
+
+    if (copy) {
+      order.id = "";
+      order.orderDate = "";
+      order.deliveryDate = "";
+      order.supplierReference = "";
+      order.contents.forEach((contents) => {
+        contents.id = createNewId();
+        contents.batches = [];
+      });
     }
   }
 

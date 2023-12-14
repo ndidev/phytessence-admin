@@ -10,10 +10,23 @@
   ]}
 />
 
-<p>
-  <a href="/contacts/suppliers">Annuaire fournisseurs</a>
-</p>
-
-<p>
-  <a href="/contacts/customers">Annuaire clients</a>
-</p>
+<nav class="list-nav">
+  <ul>
+    <li>
+      <a href="/contacts/suppliers">
+        <span class="badge bg-primary-50 material-symbols-outlined"
+          >arrow_forward</span
+        >
+        <span class="flex-auto">Annuaire fournisseurs</span>
+      </a>
+    </li>
+    <li>
+      <a href="/contacts/customers">
+        <span class="badge bg-primary-50 material-symbols-outlined"
+          >arrow_forward</span
+        >
+        <span class="flex-auto">Annuaire clients</span>
+      </a>
+    </li>
+  </ul>
+</nav>

@@ -65,7 +65,7 @@
 
   <!-- Niveaux d'alerte -->
   <fieldset
-    class="p-4 mt-2 border-2 rounded-token border-primary-800-100-token"
+    class="p-4 mt-2 border-2 rounded-container-token border-primary-800-100-token"
   >
     <legend class="px-2">Niveaux d'alerte</legend>
 

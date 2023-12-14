@@ -10,10 +10,23 @@
   ]}
 />
 
-<p>
-  <a href="/products/plants">Plantes</a>
-</p>
-
-<p>
-  <a href="/products/recipes">Recettes</a>
-</p>
+<nav class="list-nav">
+  <ul>
+    <li>
+      <a href="/products/plants">
+        <span class="badge bg-primary-50 material-symbols-outlined"
+          >arrow_forward</span
+        >
+        <span class="flex-auto">Plantes</span>
+      </a>
+    </li>
+    <li>
+      <a href="/products/recipes">
+        <span class="badge bg-primary-50 material-symbols-outlined"
+          >arrow_forward</span
+        >
+        <span class="flex-auto">Recettes</span>
+      </a>
+    </li>
+  </ul>
+</nav>

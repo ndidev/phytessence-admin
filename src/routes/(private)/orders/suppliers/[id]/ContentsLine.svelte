@@ -38,7 +38,7 @@
   <div class="mt-2">
     <div class="h6 mt-2">Lots</div>
 
-    {#each contents.batches as batch, i (i)}
+    {#each contents.batches as batch}
       <Batch {batch} {plant} />
     {:else}
       <div class="card p-2 mt-2">Aucun lot renseigné</div>

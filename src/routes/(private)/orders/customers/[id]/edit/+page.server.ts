@@ -1,9 +1,9 @@
 import type { PageServerLoad, Actions } from "./$types";
 import { error, fail } from "@sveltejs/kit";
 import { mysql } from "$lib/server";
-import { isNewId, nanoid, parseFormData } from "$lib/utils";
+import { createNewId, isNewId, nanoid, parseFormData } from "$lib/utils";
 
-export const load = (async ({ fetch, params }) => {
+export const load = (async ({ fetch, params, url }) => {
   // Récupération d'une commande, ou nouvelle commande
   let order: CustomerOrder = {
     id: "",
@@ -13,11 +13,19 @@ export const load = (async ({ fetch, params }) => {
     comments: "",
   };
 
+  const copy = url.searchParams.get("copy");
+
+  const orderId = params.id === "new" ? copy : params.id;
+
+  // Dernier numéro de sachet
+  let lastBagNumber = await getLastBagNumber();
+
   // Commande
-  if (params.id !== "new") {
+  if (orderId) {
     const [orderRows] = await mysql.execute(
-      `SELECT * FROM customersOrders WHERE id = :id`,
-      { id: params.id }
+      `SELECT * FROM customersOrders WHERE id = :orderId`,
+      // { id: params.id }
+      { orderId }
     );
 
     const orderResult = orderRows as CustomerOrder[];
@@ -31,21 +39,24 @@ export const load = (async ({ fetch, params }) => {
     // Sachets
     const [bags] = (await mysql.execute(
       `SELECT * FROM customersOrdersBags WHERE orderId = :orderId  ORDER BY number`,
-      { orderId: order.id }
-    )) as unknown as Array<Bag[]>;
+      { orderId }
+    )) as unknown as Array<CustomerOrderBag[]>;
 
     const bagsIds = bags.map(({ id }) => id);
 
     // Contenu des sachets
     if (bagsIds.length > 0) {
       const [bagsContents] = (await mysql.query(
-        `SELECT c.*
-          FROM customersOrdersBagsContents c
-          JOIN plants p ON p.id = c.plantId
-          WHERE c.bagId IN (:bagsIds)
-          ORDER BY p.name`,
+        `SELECT cobc.*
+          FROM customersOrdersBagsContents cobc
+          JOIN plants p ON p.id = cobc.plantId
+          JOIN batches b ON cobc.batchId = b.id
+          WHERE cobc.bagId IN (:bagsIds)
+          ORDER BY
+            p.name,
+            b.batchNumberPhytessence`,
         { bagsIds }
-      )) as unknown as Array<Bag["contents"]>;
+      )) as unknown as Array<CustomerOrderBag["contents"]>;
 
       // Lier le contenu des sachets aux sachets
       bags.forEach((bag) => {
@@ -53,6 +64,19 @@ export const load = (async ({ fetch, params }) => {
       });
 
       order.bags = bags;
+    }
+
+    if (copy) {
+      order.id = "";
+      order.orderDate = "";
+      order.bags.forEach((bag) => {
+        bag.id = createNewId();
+        bag.number = "~" + ++lastBagNumber;
+        bag.contents.forEach((contents) => {
+          contents.bagId = createNewId();
+          contents.batchId = "";
+        });
+      });
     }
   }
 
@@ -64,19 +88,21 @@ export const load = (async ({ fetch, params }) => {
   const plantsResponse = await fetch("/api/plants?format=autocomplete");
   const plants = (await plantsResponse.json()) as PlantAutocomplete[];
 
+  // Liste des recettes
+  const recipesResponse = await fetch("/api/recipes");
+  const recipes = (await recipesResponse.json()) as Recipe[];
+
   // Liste des lots
   const batchesResponse = await fetch("/api/plants?format=batches");
   const batches = (await batchesResponse.json()) as PlantBatch[];
-
-  // Dernier numéro de sachet
-  const lastbagNumber = await getLastbagNumber();
 
   return {
     order,
     customers,
     plants,
+    recipes,
     batches,
-    lastbagNumber,
+    lastbagNumber: lastBagNumber,
   };
 }) satisfies PageServerLoad;
 
@@ -132,7 +158,7 @@ export const actions = {
         }
       );
 
-      let lastbagNumber = await getLastbagNumber();
+      let lastbagNumber = await getLastBagNumber();
 
       // Sachets
       for (const bag of parsedData.bags || []) {
@@ -242,7 +268,7 @@ export const actions = {
         }
       );
 
-      let lastbagNumber = await getLastbagNumber();
+      let lastbagNumber = await getLastBagNumber();
 
       parsedData.bags ||= [];
 
@@ -371,7 +397,7 @@ export const actions = {
 /**
  * Faire un nouveau numéro de lot client (numéro de sachet).
  */
-async function getLastbagNumber() {
+async function getLastBagNumber() {
   const date = new Date();
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
@@ -379,7 +405,7 @@ async function getLastbagNumber() {
 
   const datePart = [year, month, day].join("");
 
-  const [lastbagNumberRows] = (await mysql.query(
+  const [lastBagNumberRows] = (await mysql.query(
     `
     SELECT number
     FROM customersOrdersBags
@@ -389,7 +415,7 @@ async function getLastbagNumber() {
   `
   )) as unknown as Array<{ number: string }[]>;
 
-  const lastbagNumber = lastbagNumberRows[0]?.number;
+  const lastBagNumber = lastBagNumberRows[0]?.number;
 
-  return parseInt(lastbagNumber || datePart + "000");
+  return parseInt(lastBagNumber || datePart + "000");
 }

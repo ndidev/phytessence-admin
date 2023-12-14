@@ -90,7 +90,7 @@
           return normalize(searchTerm)
             .split(" ")
             .map((needle) => haystack.includes(needle))
-            .some((needleFound) => needleFound === true);
+            .every((needleFound) => needleFound === true);
         }
       );
     }

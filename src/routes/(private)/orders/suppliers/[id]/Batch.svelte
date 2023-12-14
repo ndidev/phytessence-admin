@@ -12,16 +12,29 @@
 <div class="card mt-2 p-2">
   <!-- Numéro de lot fournisseur -->
   <div>
-    N° lot fournisseur : <span>{batch.batchNumberSupplier}</span>
+    N° lot fournisseur : <a
+      href="/stats/traceability/sb/{encodeURIComponent(
+        batch.batchNumberSupplier
+      )}"
+      class="underline">{batch.batchNumberSupplier}</a
+    >
   </div>
 
   <!-- Numéro de lot Phyt'Essence -->
   <div>
-    N° lot Phyt'Essence : <span
-      >{batch.phytBatchIsSupplierBatch
-        ? "idem"
-        : batch.batchNumberPhytessence}</span
-    >
+    N° lot Phyt'Essence :
+    {#if batch.phytBatchIsSupplierBatch}
+      <a
+        href="/stats/traceability/sb/{encodeURIComponent(
+          batch.batchNumberSupplier
+        )}"
+        class="underline">idem</a
+      >
+    {:else}
+      <a href="/stats/traceability/batch/{batch.id}" class="underline"
+        >{batch.batchNumberPhytessence}</a
+      >
+    {/if}
   </div>
 
   <!-- Quantité -->

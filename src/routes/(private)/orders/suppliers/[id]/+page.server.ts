@@ -37,7 +37,7 @@ export const load = (async ({ fetch, params }) => {
         WHERE orderId = :orderId
         ORDER BY p.name`,
       {
-        orderId: order.id,
+        orderId: params.id,
       }
     )) as unknown as Array<SupplierOrder["contents"]>;
 
