@@ -11,7 +11,7 @@ export const load = (async ({ locals }) => {
 export const actions = {
   default: async ({ request, locals, cookies }) => {
     if (!locals.user) {
-      throw error(401, "Utilisateur non authentifié");
+      error(401, "Utilisateur non authentifié");
     }
 
     const formData = await request.formData();

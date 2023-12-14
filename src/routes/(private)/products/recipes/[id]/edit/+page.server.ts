@@ -24,7 +24,7 @@ export const load = (async ({ fetch, params, url }) => {
     )) as unknown as Array<Recipe[]>;
 
     if (recipeResult.length !== 1) {
-      throw error(404, "Recette non trouvée");
+      error(404, "Recette non trouvée");
     }
 
     recipe = { ...recipe, ...recipeResult[0] };

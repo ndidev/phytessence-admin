@@ -28,7 +28,7 @@ export const load = (async () => {
     orders = rows as CustomerOrderSummary[];
   } catch (err) {
     console.error(err);
-    throw error(500);
+    error(500);
   }
 
   return { orders };

@@ -5,7 +5,7 @@ import { fail, redirect } from "@sveltejs/kit";
 
 export const load = (async ({ locals }) => {
   if (!locals.user?.super) {
-    throw redirect(302, "/");
+    redirect(302, "/");
   }
 
   return {};

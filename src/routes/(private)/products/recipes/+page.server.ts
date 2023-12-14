@@ -12,7 +12,7 @@ export const load = (async () => {
     recipes = rows;
   } catch (err) {
     console.error(err);
-    throw error(500);
+    error(500);
   }
 
   return { recipes };

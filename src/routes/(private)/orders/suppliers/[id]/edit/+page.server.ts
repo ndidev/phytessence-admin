@@ -28,7 +28,7 @@ export const load = (async ({ fetch, params, url }) => {
     const orderResult = orderRows as SupplierOrder[];
 
     if (orderResult.length !== 1) {
-      throw error(404, "Commande non trouvée");
+      error(404, "Commande non trouvée");
     }
 
     order = { ...order, ...orderResult[0] };

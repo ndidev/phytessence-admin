@@ -9,7 +9,7 @@ export const handle = (async ({ event, resolve }) => {
   const user = verifySessionCookie(event.cookies);
 
   if (!user) {
-    throw redirect(302, "/login");
+    redirect(302, "/login");
   }
 
   event.locals.user = user;

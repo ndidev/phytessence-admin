@@ -36,7 +36,7 @@ export const load = (async () => {
     });
   } catch (err) {
     console.error(err);
-    throw error(500);
+    error(500);
   }
 
   return { orders };

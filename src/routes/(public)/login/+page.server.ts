@@ -11,7 +11,7 @@ import {
 export const load = (async ({ cookies }) => {
   const user = verifySessionCookie(cookies);
   if (user) {
-    throw redirect(302, "/");
+    redirect(302, "/");
   }
 
   return {};
@@ -54,7 +54,7 @@ export const actions = {
 
     setSessionCookie(cookies, user);
 
-    throw redirect(302, "/");
+    redirect(302, "/");
   },
   logout: async ({ cookies, locals }) => {
     deleteSessionCookie(cookies);

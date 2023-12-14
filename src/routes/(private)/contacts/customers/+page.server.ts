@@ -11,7 +11,7 @@ export const load = (async () => {
     const [rows] = await mysql.query(query);
     customers = rows as Customer[];
   } catch {
-    throw error(500);
+    error(500);
   }
 
   return { customers };
