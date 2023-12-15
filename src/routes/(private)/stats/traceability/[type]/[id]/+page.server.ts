@@ -46,10 +46,8 @@ export const load = (async ({ params }) => {
   } catch (err) {
     console.error(err);
 
-    return redirect(302, "/stats/traceability");
+    redirect(302, "/stats/traceability");
   }
-
-  console.log(JSON.stringify(item, null, 2));
 
   return {
     item,
@@ -84,6 +82,7 @@ export const load = (async ({ params }) => {
         c.name as customerName,
         co.id as orderId,
         co.orderDate,
+        cob.id as bagId,
         cob.number as bagNumber,
         cobc.quantity,
         p.unit
@@ -111,35 +110,42 @@ export const load = (async ({ params }) => {
       (await supplierOrderDataPromise) as Array<any>
     )[0];
 
-    const [customersOrdersRows] = (await customersOrdersPromise) as Array<any>;
+    const [customersOrdersRows] = (await customersOrdersPromise) as Array<
+      any[]
+    >;
 
     // Regrouper les commandes clients par client
     const customersIdsDone: ID[] = [];
-    const ordersIdsDone: ID[] = [];
     const customersOrdersData = customersOrdersRows
       .map((line: any) => {
         if (customersIdsDone.includes(line.customerId)) return;
 
         customersIdsDone.push(line.customerId);
 
+        const customersIdsSieve = customersOrdersRows.filter(
+          ({ customerId }: any) => line.customerId === customerId
+        );
+
+        const ordersIdsDone: ID[] = [];
+
         return {
           customerName: line.customerName,
-          orders: customersOrdersRows
-            .filter(
-              ({ customerId }: { customerId: ID }) =>
-                line.customerId === customerId
-            )
+          orders: customersIdsSieve
             .map(({ orderDate, orderId }: any) => {
               if (ordersIdsDone.includes(orderId)) return;
 
               ordersIdsDone.push(orderId);
 
+              const customersOrdersIdsSieve = customersIdsSieve.filter(
+                (line_: any) => line_.orderId === orderId
+              );
+
               return {
                 orderDate,
-                bags: customersOrdersRows
-                  .filter((line_: any) => line_.orderId === orderId)
-                  .map(({ bagNumber, quantity, unit }: any) => ({
-                    bagNumber,
+                bags: customersOrdersIdsSieve
+                  .map(({ bagNumber, bagId, quantity, unit }: any) => ({
+                    id: bagId,
+                    number: bagNumber,
                     quantity: parseFloat(quantity),
                     unit,
                   }))
@@ -230,23 +236,186 @@ export const load = (async ({ params }) => {
 
     const category = "Lot fournisseur";
 
-    const batchesSql = `SELECT * FROM batches WHERE batchNumberSupplier = :batchNumber`;
-    const plantsSql = `
+    const sql = `
       SELECT
+        b.id as batchId,
+        b.batchNumberPhytessence as batchNumberPhytessence,
+        so.id as supplierOrderId,
+        so.orderDate as supplierOrderDate,
+        s.id as supplierId,
+        s.name as supplierName,
+        p.id as plantId,
+        p.name as plantName,
+        p.unit,
+        cobc.quantity,
+        cob.id as bagId,
+        cob.number as bagNumber,
+        co.orderDate as customerOrderDate,
+        c.id as customerId,
+        c.name as customerName
+      FROM batches b
+      LEFT JOIN suppliersOrdersContents soc ON soc.id = b.suppliersContentsId
+      LEFT JOIN suppliersOrders so ON so.id = soc.orderId
+      LEFT JOIN suppliers s ON s.id = so.supplierId
+      LEFT JOIN plants p ON p.id = soc.plantId
+      LEFT JOIN customersOrdersBagsContents cobc ON b.id = cobc.batchId
+      LEFT JOIN customersOrdersBags cob ON cob.id = cobc.bagId
+      LEFT JOIN customersOrders co ON co.id = cob.orderId
+      LEFT JOIN customers c ON c.id = co.customerId
+      WHERE b.batchNumberSupplier = :batchNumber
+      ORDER BY
         p.name,
-        p.unit
-      FROM plants p
-      WHERE p.id IN (
-        SELECT soc.plantId
-        FROM suppliersOrdersContents soc
-        JOIN batches b ON b.suppliersContentsId = soc.id
-        WHERE b.id = :batchId
-      )
+        s.name,
+        so.orderDate,
+        b.batchNumberPhytessence,
+        c.name,
+        co.orderDate,
+        cob.number
     `;
 
-    const batchesPromise = mysql.execute(batchesSql, { batchNumber });
+    const [results] = (await mysql.execute(sql, { batchNumber })) as Array<
+      any[]
+    >;
 
-    const data = {};
+    // Regrouper les données par
+    // Plante > Fournisseur > Commande fournisseur > Lot > Client > Commande client > Sachet
+    const plantsIdsDone: ID[] = [];
+    const data = results
+      .map((line: any) => {
+        if (plantsIdsDone.includes(line.plantId)) return;
+
+        plantsIdsDone.push(line.plantId);
+
+        const plantsSieve = results.filter(
+          ({ plantId }: any) => plantId === line.plantId
+        );
+
+        const suppliersIdsDone: ID[] = [];
+
+        return {
+          plantName: line.plantName,
+          unit: line.unit,
+          suppliers: plantsSieve
+            .map(({ supplierId, supplierName }: any) => {
+              if (suppliersIdsDone.includes(supplierId)) return;
+
+              suppliersIdsDone.push(supplierId);
+
+              const suppliersSieve = plantsSieve.filter(
+                (line_: any) => supplierId === line_.supplierId
+              );
+
+              const suppliersOrdersIdsDone: ID[] = [];
+
+              return {
+                name: supplierName,
+                orders: suppliersSieve
+                  .map(({ supplierOrderId, supplierOrderDate }: any) => {
+                    if (suppliersOrdersIdsDone.includes(supplierOrderId))
+                      return;
+
+                    suppliersOrdersIdsDone.push(supplierOrderId);
+
+                    const suppliersOrdersSieve = suppliersSieve.filter(
+                      (line_: any) => supplierOrderId === line_.supplierOrderId
+                    );
+
+                    const batchesIdsDone: ID[] = [];
+
+                    return {
+                      id: supplierOrderId,
+                      orderDate: supplierOrderDate,
+                      batches: suppliersOrdersSieve
+                        .map(({ batchId, batchNumberPhytessence }: any) => {
+                          if (batchesIdsDone.includes(batchId)) return;
+
+                          batchesIdsDone.push(batchId);
+
+                          const batchesSieve = suppliersOrdersSieve.filter(
+                            (line_: any) => batchId === line_.batchId
+                          );
+
+                          const customersIdsDone: ID[] = [];
+
+                          return {
+                            id: batchId,
+                            number: batchNumberPhytessence,
+                            customers: batchesSieve
+                              .filter(({ customerId }: any) => customerId)
+                              .map(({ customerId, customerName }: any) => {
+                                if (customersIdsDone.includes(customerId))
+                                  return;
+
+                                customersIdsDone.push(customerId);
+
+                                const customersSieve = batchesSieve.filter(
+                                  (line_) => customerId === line_.customerId
+                                );
+
+                                const customersOrdersIdsDone: ID[] = [];
+
+                                return {
+                                  name: customerName,
+                                  orders: customersSieve
+                                    .map(
+                                      ({
+                                        customerOrderDate,
+                                        customerOrderId,
+                                      }: any) => {
+                                        if (
+                                          customersOrdersIdsDone.includes(
+                                            customerOrderId
+                                          )
+                                        )
+                                          return;
+
+                                        customersOrdersIdsDone.push(
+                                          customerOrderId
+                                        );
+
+                                        const customerOrderSieve =
+                                          customersSieve.filter(
+                                            (line_: any) =>
+                                              customerOrderId ===
+                                              line_.customerOrderId
+                                          );
+
+                                        return {
+                                          orderDate: customerOrderDate,
+                                          bags: customerOrderSieve
+                                            .map(
+                                              ({
+                                                bagNumber,
+                                                bagId,
+                                                quantity,
+                                              }: any) => ({
+                                                id: bagId,
+                                                number: bagNumber,
+                                                quantity: parseFloat(quantity),
+                                              })
+                                            )
+                                            .filter((bag: any) => bag),
+                                        };
+                                      }
+                                    )
+                                    .filter(
+                                      (customerOrder: any) => customerOrder
+                                    ),
+                                };
+                              })
+                              .filter((customer: any) => customer),
+                          };
+                        })
+                        .filter((batch: any) => batch),
+                    };
+                  })
+                  .filter((supplierOrder: any) => supplierOrder),
+              };
+            })
+            .filter((supplier: any) => supplier),
+        };
+      })
+      .filter((plant: any) => plant);
 
     const name = batchNumber;
 

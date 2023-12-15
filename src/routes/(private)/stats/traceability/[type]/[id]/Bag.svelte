@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { afterUpdate } from "svelte";
+
   import { formatQuantity } from "$lib/utils";
 
   type Data = {
@@ -17,17 +19,27 @@
     }[];
   };
 
+  // Props
   export let data: Data;
+
+  // Local
+  let customerOrder: Data["customerOrder"];
+  let orderContents: Data["contents"] = [];
+
+  afterUpdate(() => {
+    customerOrder = data.customerOrder;
+    orderContents = data.contents;
+  });
 </script>
 
 <h2 class="h2">Commande client</h2>
 
 <div class="card p-2 my-4">
-  <div>{data?.customerOrder?.customerName || "Client inconnu"}</div>
+  <div>{customerOrder?.customerName || "Client inconnu"}</div>
   <div>
-    Commande du {new Date(data?.customerOrder?.orderDate).toLocaleDateString()}
+    Commande du {new Date(customerOrder?.orderDate).toLocaleDateString()}
   </div>
-  <a href="/orders/customers/{data?.customerOrder?.orderId}" class="underline"
+  <a href="/orders/customers/{customerOrder?.orderId}" class="underline"
     >Voir la commande</a
   >
 </div>
@@ -35,7 +47,7 @@
 <h2 class="h2">Contenu du sachet</h2>
 
 <div class="card p-2 my-4">
-  {#each data?.contents || [] as contents}
+  {#each orderContents || [] as contents}
     <div class="card mt-2 p-2">
       <!-- Plante -->
       <div>
