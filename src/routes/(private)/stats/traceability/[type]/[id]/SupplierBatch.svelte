@@ -4,31 +4,40 @@
   import { DateUtils, formatQuantity } from "$lib/utils";
 
   type Data = {
-    plantName: Plant["name"];
-    unit: Plant["unit"];
-    suppliers: {
-      name: Supplier["name"];
-      orders: {
-        id: SupplierOrder["id"];
-        orderDate: SupplierOrder["orderDate"];
-        batches: {
-          id: Batch["id"];
-          number: Batch["batchNumberPhytessence"];
-          customers: {
-            name: Customer["name"];
-            orders: {
-              orderDate: CustomerOrder["orderDate"];
-              bags: {
-                id: CustomerOrderBag["id"];
-                number: CustomerOrderBag["number"];
-                quantity: Quantity;
+    inward: {
+      plantId: Plant["id"];
+      quantity: Quantity;
+      supplierId: Supplier["id"];
+    }[];
+    outward: {
+      id: Plant["id"];
+      name: Plant["name"];
+      unit: Plant["unit"];
+      suppliers: {
+        id: Supplier["id"];
+        name: Supplier["name"];
+        orders: {
+          id: SupplierOrder["id"];
+          orderDate: SupplierOrder["orderDate"];
+          batches: {
+            id: Batch["id"];
+            number: Batch["batchNumberPhytessence"];
+            customers: {
+              name: Customer["name"];
+              orders: {
+                orderDate: CustomerOrder["orderDate"];
+                bags: {
+                  id: CustomerOrderBag["id"];
+                  number: CustomerOrderBag["number"];
+                  quantity: Quantity;
+                }[];
               }[];
             }[];
           }[];
         }[];
       }[];
     }[];
-  }[];
+  };
 
   // Props
 
@@ -46,33 +55,65 @@
   export let data: Data;
 
   // Local
-  let plants: Data = [];
+  let inward: Data["inward"] = [];
+  let outward: Data["outward"] = [];
 
   afterUpdate(() => {
-    plants = data;
+    ({ inward, outward } = data);
+
+    console.log({ inward });
   });
 </script>
 
 <!-- Plantes -->
 <ul>
-  {#each plants || [] as plant}
+  {#each outward || [] as plant}
     <li>
-      <h2 class="h2">{plant.plantName}</h2>
+      <h2 class="h2">{plant.name}</h2>
 
       <!-- Fournisseurs -->
       <ul>
         {#each plant?.suppliers || [] as supplier}
+          {@const inwardQuantity = inward
+            .filter(
+              ({ supplierId, plantId }) =>
+                supplierId === supplier.id && plantId === plant.id
+            )
+            .map(({ quantity }) => quantity)
+            .reduce((prev, acc) => prev + acc, 0)}
+          {@const outwardQuantity = supplier.orders
+            .map(({ batches }) =>
+              batches.map(({ customers }) =>
+                customers.map(({ orders }) =>
+                  orders.map(({ bags }) => bags.map(({ quantity }) => quantity))
+                )
+              )
+            )
+            .flat(4)
+            .reduce((prev, acc) => prev + acc, 0)}
+
           <li class="card p-2 my-4">
             <h3 class="h3">{supplier.name}</h3>
+
+            <div class="ml-2">
+              Entrée : {formatQuantity(inwardQuantity, plant.unit)}
+              <br />
+              Sortie : {formatQuantity(outwardQuantity, plant.unit)}
+              <br />
+              Restant : {formatQuantity(
+                inwardQuantity - outwardQuantity,
+                plant.unit
+              )}
+            </div>
 
             <!-- Commandes fournisseurs -->
             <ul class="ml-2">
               {#each supplier?.orders || [] as supplierOrder}
-                <li class="mt-2">
-                  <div>
+                <li class="mt-4">
+                  <h4 class="h4">
                     Commande du {new DateUtils(supplierOrder.orderDate).format()
                       .short}
-                  </div>
+                  </h4>
 
                   <!-- Lots Phyt'Essence -->
                   <ul class="ml-2">
@@ -82,14 +123,14 @@
                           href="/stats/traceability/batch/{batch.id}"
                           class="underline"
                         >
-                          <h4 class="h4">Lot n° {batch.number}</h4></a
+                          <h5 class="h5">Lot n°{batch.number}</h5></a
                         >
 
                         <!-- Clients -->
                         <ul class="ml-2">
                           {#each batch.customers as customers}
                             <li class="mt-2">
-                              <h5 class="h5">{customers.name}</h5>
+                              <h6 class="h6">{customers.name}</h6>
 
                               <!-- Commandes clients -->
                               <ul class="ml-2">

@@ -61,7 +61,9 @@ export const load = (async ({ params }) => {
     const supplierOrderDataSql = `
       SELECT
         b.batchNumberPhytessence,
+        b.quantity,
         p.name as plantName,
+        p.unit as plantUnit,
         b.batchNumberSupplier,
         s.name as supplierName,
         so.orderDate,
@@ -236,7 +238,19 @@ export const load = (async ({ params }) => {
 
     const category = "Lot fournisseur";
 
-    const sql = `
+    const inwardSql = `
+      SELECT
+        b.quantity,
+        soc.plantId,
+        s.id as supplierId
+      FROM batches b
+      JOIN suppliersOrdersContents soc ON soc.id = b.suppliersContentsId
+      JOIN suppliersOrders so ON so.id = soc.orderId
+      JOIN suppliers s ON s.id = so.supplierId
+      WHERE b.batchNumberSupplier = :batchNumber
+      `;
+
+    const outwardSql = `
       SELECT
         b.id as batchId,
         b.batchNumberPhytessence as batchNumberPhytessence,
@@ -273,27 +287,38 @@ export const load = (async ({ params }) => {
         cob.number
     `;
 
-    const [results] = (await mysql.execute(sql, { batchNumber })) as Array<
-      any[]
-    >;
+    const [inwardResults] = (await mysql.execute(inwardSql, {
+      batchNumber,
+    })) as Array<any[]>;
+
+    const [outwardResults] = (await mysql.execute(outwardSql, {
+      batchNumber,
+    })) as Array<any[]>;
+
+    const inwardData = inwardResults.map((line) => {
+      line.quantity = parseFloat(line.quantity);
+
+      return line;
+    });
 
     // Regrouper les données par
     // Plante > Fournisseur > Commande fournisseur > Lot > Client > Commande client > Sachet
     const plantsIdsDone: ID[] = [];
-    const data = results
+    const outwardData = outwardResults
       .map((line: any) => {
         if (plantsIdsDone.includes(line.plantId)) return;
 
         plantsIdsDone.push(line.plantId);
 
-        const plantsSieve = results.filter(
+        const plantsSieve = outwardResults.filter(
           ({ plantId }: any) => plantId === line.plantId
         );
 
         const suppliersIdsDone: ID[] = [];
 
         return {
-          plantName: line.plantName,
+          id: line.plantId,
+          name: line.plantName,
           unit: line.unit,
           suppliers: plantsSieve
             .map(({ supplierId, supplierName }: any) => {
@@ -308,6 +333,7 @@ export const load = (async ({ params }) => {
               const suppliersOrdersIdsDone: ID[] = [];
 
               return {
+                id: supplierId,
                 name: supplierName,
                 orders: suppliersSieve
                   .map(({ supplierOrderId, supplierOrderDate }: any) => {
@@ -416,6 +442,11 @@ export const load = (async ({ params }) => {
         };
       })
       .filter((plant: any) => plant);
+
+    const data = {
+      inward: inwardData,
+      outward: outwardData,
+    };
 
     const name = batchNumber;
 

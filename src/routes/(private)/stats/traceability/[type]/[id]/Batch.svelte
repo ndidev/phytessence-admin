@@ -7,10 +7,12 @@
     supplierOrder: {
       batchNumberPhytessence: Batch["batchNumberPhytessence"];
       plantName: Plant["name"];
+      plantUnit: Plant["unit"];
       batchNumberSupplier: Batch["batchNumberSupplier"];
       supplierName: Supplier["name"];
       orderDate: SupplierOrder["orderDate"];
       deliveryDate: SupplierOrder["orderDate"];
+      quantity: Quantity;
       supplierReference: SupplierOrder["supplierReference"];
     };
     customersOrders: {
@@ -33,33 +35,53 @@
   // Local
   let customersOrders: Data["customersOrders"] = [];
   let supplierOrder: Data["supplierOrder"];
+  let outwardQuantity = 0;
 
   afterUpdate(() => {
-    customersOrders = data.customersOrders;
+    customersOrders = data.customersOrders || [];
     supplierOrder = data.supplierOrder;
+
+    outwardQuantity = customersOrders
+      .map(({ orders }) =>
+        orders.map(({ bags }) => bags.map(({ quantity }) => quantity))
+      )
+      .flat(2)
+      .reduce((prev, acc) => prev + acc, 0);
   });
 </script>
 
 <h2 class="h2">Commande fournisseur</h2>
 
 <div class="card p-2 my-4">
-  <div>Plante : {supplierOrder?.plantName}</div>
-  <div>Fournisseur : {supplierOrder?.supplierName}</div>
-  <div>
-    Commande du {new Date(supplierOrder?.orderDate).toLocaleDateString()},
-    livrée le {new Date(supplierOrder?.deliveryDate).toLocaleDateString()}
-  </div>
-  <div>
-    Référence fournisseur de la commande : {supplierOrder?.supplierReference}
-  </div>
-  <div>
-    Numéro de lot fournisseur : <a
-      href="/stats/traceability/sb/{encodeURIComponent(
-        supplierOrder?.batchNumberSupplier
-      )}"
-      class="underline">{data?.supplierOrder?.batchNumberSupplier}</a
-    >
-  </div>
+  {#if supplierOrder}
+    <div>Plante : {supplierOrder.plantName}</div>
+    <div>Fournisseur : {supplierOrder.supplierName}</div>
+    <div>
+      Commande du {new Date(supplierOrder.orderDate).toLocaleDateString()},
+      livrée le {new Date(supplierOrder.deliveryDate).toLocaleDateString()}
+    </div>
+    <div>
+      Référence fournisseur de la commande : {supplierOrder.supplierReference}
+    </div>
+    <div>
+      Numéro de lot fournisseur : <a
+        href="/stats/traceability/sb/{encodeURIComponent(
+          supplierOrder.batchNumberSupplier
+        )}"
+        class="underline">{supplierOrder.batchNumberSupplier}</a
+      >
+    </div>
+    <div>
+      Entrée : {formatQuantity(supplierOrder.quantity, supplierOrder.plantUnit)}
+      <br />
+      Sortie : {formatQuantity(outwardQuantity, supplierOrder.plantUnit)}
+      <br />
+      Restant : {formatQuantity(
+        supplierOrder.quantity - outwardQuantity,
+        supplierOrder.plantUnit
+      )}
+    </div>
+  {/if}
 </div>
 
 <h2 class="h2">Commandes clients</h2>

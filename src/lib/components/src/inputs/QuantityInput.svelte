@@ -41,8 +41,8 @@
       type="number"
       {name}
       {id}
-      class="text-right"
-      {value}
+      class="text-right w-full"
+      bind:value
       {step}
       {min}
       {max}

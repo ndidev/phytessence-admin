@@ -90,9 +90,11 @@
         ref: RecipeSelection,
         props: {
           recipes,
+          plants,
+          batches,
         },
       },
-      response: (recipe: Recipe) => {
+      response: (recipe: RecipeWithBatch) => {
         if (recipe) {
           const addedBags: CustomerOrderBag[] = [];
           recipe.bags.forEach(({ quantity, contents }) => {
@@ -101,12 +103,13 @@
                 id: createNewId(),
                 orderId: order.id,
                 number: "~" + String(++lastbagNumber),
-                contents: contents.map(({ plantId, quantity }) => ({
+                // @ts-ignore
+                contents: contents.map(({ plantId, quantity, batchId }) => ({
                   id: createNewId(),
                   bagId: "",
                   plantId,
                   quantity,
-                  batchId: "",
+                  batchId,
                 })),
               });
             }

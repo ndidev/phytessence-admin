@@ -3,12 +3,16 @@
 
   import { getModalStore, ListBox, ListBoxItem } from "@skeletonlabs/skeleton";
 
+  import RecipeFillIn from "./RecipeFillIn.svelte";
+
   import { SearchInput } from "$lib/components";
   import { normalize } from "$lib/utils";
 
   // Props
   export let parent: SvelteComponent;
   export let recipes: Recipe[] = [];
+  export let plants: PlantAutocomplete[] = [];
+  export let batches: PlantBatch[] = [];
 
   // Local
   const modalStore = getModalStore();
@@ -17,10 +21,28 @@
   let matchingRecipes = recipes;
 
   function onFormSubmit() {
-    if ($modalStore[0].response) {
-      $modalStore[0].response(selectedRecipe);
-    }
-    modalStore.close();
+    modalStore.update((modals) => [
+      {
+        type: "component",
+        component: {
+          ref: RecipeFillIn,
+          props: {
+            recipe: structuredClone(selectedRecipe),
+            plants,
+            batches,
+          },
+        },
+        response: (r) => {
+          if (!r) return;
+
+          if ($modalStore[0].response) {
+            $modalStore[0].response(r);
+          }
+          modalStore.close();
+        },
+      },
+      ...modals,
+    ]);
   }
 
   /**
@@ -78,8 +100,10 @@
       <button class="btn {parent.buttonNeutral}" on:click={parent.onClose}
         >Annuler</button
       >
-      <button class="btn {parent.buttonPositive}" on:click={onFormSubmit}
-        >Valider</button
+      <button
+        class="btn {parent.buttonPositive}"
+        on:click={onFormSubmit}
+        disabled={!selectedRecipe}>Valider</button
       >
     </footer>
   </div>

@@ -127,6 +127,15 @@ declare global {
 
   type RecipeBag = Recipe["bags"][number];
 
+  type RecipeWithBatch = Recipe & {
+    bags: {
+      contents: {
+        /** Numéro de lot Phyt'essence. */
+        batchId: ID;
+      }[];
+    }[];
+  };
+
   /**
    * Client.
    */
