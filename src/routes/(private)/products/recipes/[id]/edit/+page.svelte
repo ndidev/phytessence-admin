@@ -4,7 +4,7 @@
   export let data: PageData;
 
   import { setContext } from "svelte";
-  import { SlideToggle } from "@skeletonlabs/skeleton";
+  import { getModalStore, SlideToggle } from "@skeletonlabs/skeleton";
 
   import Bag from "./Bag.svelte";
 
@@ -16,12 +16,7 @@
     Textarea,
     ConfirmModal,
   } from "$lib/components";
-  import {
-    showToastActionResult,
-    modalStore,
-    createNewId,
-    isNewId,
-  } from "$lib/utils";
+  import { showToastActionResult, createNewId, isNewId } from "$lib/utils";
 
   let { recipe, plants } = data;
 
@@ -29,6 +24,8 @@
 
   setContext("plants", plants);
 
+  // Local
+  const modalStore = getModalStore();
   const isNew = !recipe.id;
   let submitting = false;
 
@@ -50,7 +47,7 @@
     }
 
     if (!isNewId(bagId)) {
-      $modalStore.trigger({
+      modalStore.trigger({
         type: "component",
         component: {
           ref: ConfirmModal,
@@ -58,10 +55,10 @@
             title: "Supprimer le sachet",
             onConfirm: () => {
               _actualDelete();
-              $modalStore.clear();
+              modalStore.clear();
             },
             onCancel: () => {
-              $modalStore.close();
+              modalStore.close();
             },
           },
           slot: "<p>Confirmez-vous la suppression de ce sachet de la recette ?</p>",

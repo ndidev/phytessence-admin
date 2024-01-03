@@ -1,20 +1,25 @@
 <script lang="ts">
   import { getContext } from "svelte";
 
+  import { getModalStore } from "@skeletonlabs/skeleton";
+
   import {
     AutocompleteInput,
     QuantityInput,
     ConfirmModal,
   } from "$lib/components";
 
-  import { createNewId, isNewId, modalStore } from "$lib/utils";
+  import { createNewId, isNewId } from "$lib/utils";
 
   import Batch from "./Batch.svelte";
 
+  // Props
   export let contents: SupplierOrder["contents"][0];
   /** Contents index - Index de la ligne de contenu */
   export let ci: number;
 
+  // Local
+  const modalStore = getModalStore();
   const plants = getContext<PlantAutocomplete[]>("plants");
   $: plant =
     plants.find(({ id }) => contents.plantId === id) ||
@@ -40,7 +45,7 @@
     }
 
     if (!isNewId(batchId)) {
-      $modalStore.trigger({
+      modalStore.trigger({
         type: "component",
         component: {
           ref: ConfirmModal,
@@ -48,10 +53,10 @@
             title: "Supprimer le lot",
             onConfirm: () => {
               _actualDelete();
-              $modalStore.clear();
+              modalStore.clear();
             },
             onCancel: () => {
-              $modalStore.close();
+              modalStore.close();
             },
           },
           slot: "<p>Confirmez-vous la suppression de ce lot de la commande ?</p>",

@@ -1,6 +1,5 @@
 <script lang="ts">
   import { getModalStore } from "@skeletonlabs/skeleton";
-  import { modalStore } from "$lib/utils";
 
   export let parent: any;
 

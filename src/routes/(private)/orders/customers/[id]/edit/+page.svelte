@@ -5,6 +5,8 @@
 
   import { setContext } from "svelte";
 
+  import { getModalStore } from "@skeletonlabs/skeleton";
+
   import Bag from "./Bag.svelte";
   import RecipeSelection from "./RecipeSelection.svelte";
 
@@ -21,7 +23,6 @@
     showToastActionResult,
     createNewId,
     isNewId,
-    modalStore,
     DateUtils,
   } from "$lib/utils";
 
@@ -30,6 +31,8 @@
   setContext("plants", plants);
   setContext("batches", batches);
 
+  // Local
+  const modalStore = getModalStore();
   const isNew = !order.id;
   let submitting = false;
 
@@ -56,7 +59,7 @@
     }
 
     if (!isNewId(bagId)) {
-      $modalStore.trigger({
+      modalStore.trigger({
         type: "component",
         component: {
           ref: ConfirmModal,
@@ -64,10 +67,10 @@
             title: "Supprimer le sachet",
             onConfirm: () => {
               _actualDelete();
-              $modalStore.clear();
+              modalStore.clear();
             },
             onCancel: () => {
-              $modalStore.close();
+              modalStore.close();
             },
           },
           slot: "<p>Confirmez-vous la suppression de ce sachet de la commande ?</p>",
@@ -81,7 +84,7 @@
   }
 
   function addRecipe() {
-    $modalStore.trigger({
+    modalStore.trigger({
       type: "component",
       component: {
         ref: RecipeSelection,

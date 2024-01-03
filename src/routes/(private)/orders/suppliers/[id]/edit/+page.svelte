@@ -5,6 +5,8 @@
 
   import { setContext } from "svelte";
 
+  import { getModalStore } from "@skeletonlabs/skeleton";
+
   import ContentsLine from "./ContentsLine.svelte";
 
   import { page } from "$app/stores";
@@ -20,7 +22,6 @@
   import {
     showToastActionResult,
     createNewId,
-    modalStore,
     isNewId,
     DateUtils,
   } from "$lib/utils";
@@ -29,6 +30,8 @@
 
   setContext("plants", plants);
 
+  // Local
+  const modalStore = getModalStore();
   const isNew = !order.id;
   let submitting = false;
 
@@ -58,7 +61,7 @@
     }
 
     if (!isNewId(contentsId)) {
-      $modalStore.trigger({
+      modalStore.trigger({
         type: "component",
         component: {
           ref: ConfirmModal,
@@ -66,10 +69,10 @@
             title: "Supprimer la plante",
             onConfirm: () => {
               _actualDelete();
-              $modalStore.clear();
+              modalStore.clear();
             },
             onCancel: () => {
-              $modalStore.close();
+              modalStore.close();
             },
           },
           slot: "<p>Confirmez-vous la suppression de cette plante de la commande ?</p>",

@@ -3,7 +3,6 @@ export { mapify, jsonify } from "./src/mapUtils";
 export { normalize, compareNormalized } from "./src/normalize";
 export { createSlug } from "./src/createSlug";
 export { showToastActionResult } from "./src/showToastActionResult";
-export { modalStore } from "./src/modalStore";
 export { toastStore } from "./src/toastStore";
 export { parseFormData } from "./src/parseFormData";
 export { createNewId, isNewId } from "./src/newId";

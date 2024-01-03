@@ -1,13 +1,19 @@
 <script lang="ts">
+  import { getModalStore } from "@skeletonlabs/skeleton";
+
   import BagContents from "./BagContents.svelte";
 
   import { ConfirmModal } from "$lib/components";
 
-  import { createNewId, isNewId, modalStore } from "$lib/utils";
+  import { createNewId, isNewId } from "$lib/utils";
 
+  // Props
   export let bag: CustomerOrderBag;
   /** Bag index - Index de la ligne de sachet */
   export let bi: number;
+
+  // Local
+  const modalStore = getModalStore();
 
   function addBagContents() {
     bag.contents.push({
@@ -29,7 +35,7 @@
     }
 
     if (!isNewId(contentsId)) {
-      $modalStore.trigger({
+      modalStore.trigger({
         type: "component",
         component: {
           ref: ConfirmModal,
@@ -37,10 +43,10 @@
             title: "Supprimer la plante du sachet",
             onConfirm: () => {
               _actualDelete();
-              $modalStore.clear();
+              modalStore.clear();
             },
             onCancel: () => {
-              $modalStore.close();
+              modalStore.close();
             },
           },
           slot: "<p>Confirmez-vous la suppression de cette plante du sachet ?</p>",
