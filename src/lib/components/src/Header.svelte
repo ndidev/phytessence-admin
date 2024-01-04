@@ -18,7 +18,7 @@
   <svelte:fragment slot="lead">
     {#if !titleOnly}
       <button
-        class="material-symbols-outlined"
+        class="material-symbols-outlined text-2xl md:text-3xl"
         title="Revenir en arrière"
         on:click={() => {
           window.history.back();
@@ -27,14 +27,17 @@
     {/if}
   </svelte:fragment>
 
-  <span class="text-3xl">Phyt'Essence Admin</span>
+  <span class="text-2xl md:text-3xl"
+    ><a href="/" title="Revenir à l'accueil">Phyt'Essence Admin</a></span
+  >
 
   <svelte:fragment slot="trail">
     {#if !titleOnly}
       {#if user.super}
         <a href="/settings"
-          ><span class="material-symbols-outlined text-3xl" title="Paramètres"
-            >settings</span
+          ><span
+            class="material-symbols-outlined text-2xl md:text-3xl"
+            title="Paramètres">settings</span
           ></a
         >
       {/if}

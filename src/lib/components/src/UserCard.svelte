@@ -13,7 +13,7 @@
 
 {#if user}
   <button type="button" use:popup={popupUserCard}>
-    <span class="material-symbols-outlined" style:font-size="36px">
+    <span class="material-symbols-outlined text-2xl md:text-3xl">
       account_circle
     </span>
   </button>
