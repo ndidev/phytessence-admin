@@ -13,69 +13,6 @@ export const load = (async ({ locals }) => {
 
 export const actions = {
   /**
-   * Importer des clients.
-   */
-  importCustomers: async ({ request }) => {
-    const data = await request.formData();
-    const csvFile = data.get("csvFile") as File;
-    const csvFileText = await csvFile.text();
-
-    let customers: Array<Partial<Customer>> = csvFileText
-      .split(/\r\n|\n/)
-      .slice(1) // Supprimer la ligne d'en-tête
-      .map((customer) => {
-        const [dataName, dataPro] = customer.split(";") as [string, "1" | "0"];
-
-        return {
-          id: nanoid(),
-          name: dataName.replaceAll(/\s+/g, " ").trim(),
-          pro: !!dataPro,
-        };
-      })
-      .filter(({ name }) => name !== "");
-
-    try {
-      let customersQuery = `
-        INSERT INTO customers
-        (id, name, pro, comments, active)
-        VALUES `;
-
-      for (const customer of customers) {
-        customersQuery += `(
-          "${customer.id}",
-          "${customer.name}",
-          ${customer.pro ? 1 : 0},
-          "",
-          1
-        ),`;
-      }
-
-      // Replacement de la dernière virgule
-      customersQuery = customersQuery.replace(/,$/, ";");
-
-      await mysql.beginTransaction();
-
-      const customersPromise = mysql.query(customersQuery);
-
-      await Promise.all([customersPromise]);
-
-      console.log("Importation terminée");
-
-      await mysql.commit();
-
-      mysql.unprepare(customersQuery);
-    } catch (err) {
-      await mysql.rollback();
-
-      console.error(err);
-
-      return fail(500, { message: "Erreur lors de l'importation" });
-    }
-
-    return { message: `${customers.length} clients ont été importés` };
-  },
-
-  /**
    * Importer des commandes fournisseurs.
    */
   importSuppliersOrders: async ({ request }) => {
@@ -83,7 +20,7 @@ export const actions = {
     const csvFile = data.get("csvFile") as File;
     const csvFileText = await csvFile.text();
 
-    type ImportedSupplierOrder = {
+    type ImportedSupplierOrderBatch = {
       supplierName: Supplier["name"];
       plantName: Plant["name"];
       orderDate: SupplierOrder["orderDate"] | null;
@@ -92,7 +29,7 @@ export const actions = {
       batchNumberSupplier: Batch["batchNumberSupplier"];
       batchNumberPhytessence: Batch["batchNumberPhytessence"];
       phytBatchIsSupplierBatch: Batch["phytBatchIsSupplierBatch"];
-      quantity: Batch["quantity"];
+      quantity: Quantity;
       unit: string;
       cost: SupplierOrderContents["cost"];
       vat: SupplierOrderContents["vat"];
@@ -105,10 +42,10 @@ export const actions = {
       contentsId: SupplierOrderContents["id"];
     };
 
-    const ordersRaw: Array<ImportedSupplierOrder> = csvFileText
+    const ordersBatchesRaw: Array<ImportedSupplierOrderBatch> = csvFileText
       .split(/\r\n|\n/)
       .slice(1) // Supprimer la ligne d'en-tête
-      .map((order) => {
+      .map((line) => {
         const [
           supplierName,
           plantName,
@@ -124,7 +61,7 @@ export const actions = {
           vat,
           cost_ttc,
           expiryDate,
-        ] = order.split(";");
+        ] = line.split(";");
 
         return {
           supplierName,
@@ -150,8 +87,7 @@ export const actions = {
       })
       .filter(
         // Suppression des lignes ne comportant pas de fournisseur ou de date de commande
-        ({ supplierName, orderDate }) =>
-          supplierName !== "" && orderDate !== null
+        ({ supplierName, orderDate }) => supplierName && orderDate
       );
 
     let suppliersCount = 0;
@@ -162,9 +98,9 @@ export const actions = {
       /**
        * Ordre des opérations :
        * 1. réduction du tableau des commandes pour extraire :
-       *      a. chaque plante
-       *      b. chaque founisseur
-       *      c. chaque commande (= groupe de lots d'une même commande)
+       *      a. chaque founisseur
+       *      b. chaque commande (= groupe de lots d'une même commande)
+       *      c. chaque plante
        *      d. chaque ligne de contenu par commande (= combo commande/plante/coût/TVA)
        * 2. création des requêtes SQL
        *      a. plantes
@@ -182,20 +118,20 @@ export const actions = {
 
       // 1.a. extraction des fournisseurs
       const suppliers = Array.from(
-        new Set(ordersRaw.map(({ supplierName }) => supplierName))
+        new Set(ordersBatchesRaw.map(({ supplierName }) => supplierName))
       ).map((name) => ({
         id: nanoid(),
         name,
       }));
 
       // Mise à jour des supplierIds
-      ordersRaw.forEach((line) => {
+      ordersBatchesRaw.forEach((line) => {
         line.supplierId =
           suppliers.find(({ name }) => name === line.supplierName)?.id || "";
       });
 
       // 1.b. extraction des commandes
-      let orders = ordersRaw.map(
+      let orders = ordersBatchesRaw.map(
         ({ supplierId, orderDate, deliveryDate, supplierReference }) => ({
           id: "",
           supplierId,
@@ -214,7 +150,7 @@ export const actions = {
       });
 
       // Mise à jour des orderIds
-      ordersRaw.forEach((line) => {
+      ordersBatchesRaw.forEach((line) => {
         line.orderId =
           orders.find(
             ({ supplierId, orderDate }) =>
@@ -223,7 +159,7 @@ export const actions = {
       });
 
       // 1.c. extraction des plantes
-      let plants = ordersRaw.map(({ plantName: plant, unit }) => ({
+      let plants = ordersBatchesRaw.map(({ plantName: plant, unit }) => ({
         id: "",
         name: plant,
         unit,
@@ -238,7 +174,7 @@ export const actions = {
       });
 
       // Mise à jour des plantIds
-      ordersRaw.forEach((line) => {
+      ordersBatchesRaw.forEach((line) => {
         line.plantId =
           plants.find(({ name }) => name === line.plantName)?.id || "";
       });
@@ -257,37 +193,44 @@ export const actions = {
 
       // Pour chaque ligne des données brutes ajouter (si nécessaire) dans le tableau ordersContents
       // Regrouper les lignes par combo commande/plante/coût/TVA
-      ordersRaw.forEach(({ orderId, plantId, cost, vat, contentsId }) => {
-        // Vérification si la ligne de contenu est déjà dans le tableau
-        if (contentsId) {
-          return;
+      ordersBatchesRaw.forEach(
+        ({ orderId, plantId, cost, vat, contentsId }) => {
+          // Vérification si la ligne de contenu est déjà dans le tableau
+          if (contentsId) {
+            return;
+          }
+
+          const id = nanoid();
+
+          const relevantLines = ordersBatchesRaw.filter(
+            ({
+              orderId: _orderId,
+              plantId: _plantId,
+              cost: _cost,
+              vat: _vat,
+            }) =>
+              orderId === _orderId &&
+              plantId === _plantId &&
+              cost === _cost &&
+              vat === _vat
+          );
+
+          relevantLines.forEach((line) => (line.contentsId = id));
+
+          const quantity = relevantLines
+            .map(({ quantity }) => quantity)
+            .reduce((prev, sum) => prev + sum, 0);
+
+          ordersContents.push({
+            id,
+            orderId,
+            plantId,
+            quantity,
+            cost,
+            vat,
+          });
         }
-
-        const id = nanoid();
-
-        const relevantLines = ordersRaw.filter(
-          ({ orderId: _orderId, plantId: _plantId, cost: _cost, vat: _vat }) =>
-            orderId === _orderId &&
-            plantId === _plantId &&
-            cost === _cost &&
-            vat === _vat
-        );
-
-        relevantLines.forEach((line) => (line.contentsId = id));
-
-        const quantity = relevantLines
-          .map(({ quantity }) => quantity)
-          .reduce((prev, sum) => prev + sum, 0);
-
-        ordersContents.push({
-          id,
-          orderId,
-          plantId,
-          quantity,
-          cost,
-          vat,
-        });
-      });
+      );
 
       // 2. Création des requêtes SQL
 
@@ -369,7 +312,7 @@ export const actions = {
         quantity
       ) VALUES `;
 
-      for (const batchLine of ordersRaw) {
+      for (const batchLine of ordersBatchesRaw) {
         batchesQuery += `(
           "${nanoid()}",
           "${batchLine.contentsId}",
@@ -432,6 +375,319 @@ export const actions = {
   },
 
   /**
+   * Importer des clients.
+   */
+  importCustomersOrders: async ({ request }) => {
+    const data = await request.formData();
+    const csvFile = data.get("csvFile") as File;
+    const csvFileText = await csvFile.text();
+
+    type ImportedCustomerOrderBagContents = {
+      bagNumber: CustomerOrderBag["number"];
+      orderDate: CustomerOrder["orderDate"] | null;
+      customerName: Supplier["name"];
+      batchNumberPhytessence: Batch["batchNumberPhytessence"];
+      plantName: Plant["name"];
+      quantity: Quantity;
+      distributionChannel: string;
+      sellingPrice: CustomerOrder["sellingPrice"];
+      comments: CustomerOrder["comments"];
+
+      // Rajout pour faciliter le traitement
+      contentsId: SupplierOrderContents["id"];
+      bagId: CustomerOrderBag["id"];
+      orderId: CustomerOrder["id"];
+      customerId: Customer["id"];
+      distributionChannelId: number | null;
+    };
+
+    let customersOrdersBagsContentsRaw: Array<
+      Partial<ImportedCustomerOrderBagContents>
+    > = csvFileText
+      .split(/\r\n|\n/)
+      .slice(1) // Supprimer la ligne d'en-tête
+      .map((line) => {
+        const [
+          bagNumber,
+          orderDate,
+          customerName,
+          batchNumberPhytessence,
+          plantName,
+          quantity,
+          distributionChannel,
+          bagPrice,
+          sellingPrice,
+          comments,
+        ] = line.split(";");
+
+        return {
+          bagNumber,
+          orderDate: orderDate?.split("/").reverse().join("-"),
+          customerName,
+          batchNumberPhytessence,
+          plantName,
+          quantity:
+            parseFloat(quantity?.replace(" ", "").replace(",", ".")) || 0,
+          distributionChannel,
+          sellingPrice: parseFloat(sellingPrice?.replace(",", ".")) || 0,
+          comments,
+
+          contentsId: nanoid(),
+          bagId: "",
+          orderId: "",
+          customerId: "",
+        };
+      })
+      .filter(
+        // Suppression des lignes ne comportant pas de lot Phytessence
+        ({ batchNumberPhytessence }) => batchNumberPhytessence
+      );
+
+    let customersCount = 0;
+    let ordersCount = 0;
+    let bagsCount = 0;
+
+    try {
+      /**
+       * Ordre des opérations :
+       * 1. réduction du tableau des sachets pour extraire :
+       *      a. chaque client
+       *      b. chaque canal de distribution
+       *      c. chaque commande (= groupe de sachets d'une même date + client)
+       *      d. chaque sachet
+       * 2. création des requêtes SQL
+       *      a. plantes
+       *      b. fournisseurs
+       *      c. commandes
+       *      d. lignes de contenu des commandes
+       *      e. lots des commandes
+       * 3. insertion dans la base de données :
+       *      a. liste des plantes
+       *      b. liste des fournisseurs
+       *      c. liste des commandes
+       *      d. lignes de contenu dans chaque commande
+       *      e. lots pour chaque commande
+       */
+
+      let incrementId = 0;
+
+      // 1.a. extraction des clients
+      const customers = Array.from(
+        new Set(
+          customersOrdersBagsContentsRaw.map(({ customerName }) => customerName)
+        )
+      ).map((name) => ({
+        id: nanoid(),
+        name,
+      }));
+
+      // Mise à jour des customerIds
+      customersOrdersBagsContentsRaw.forEach((line) => {
+        line.customerId =
+          customers.find(({ name }) => name === line.customerName)?.id || "";
+      });
+
+      // 1.b. extraction des canaux de distribution
+      incrementId = 0;
+      const distributionChannels = Array.from(
+        new Set(
+          customersOrdersBagsContentsRaw.map(
+            ({ distributionChannel }) => distributionChannel
+          )
+        )
+      ).map((name) => ({
+        id: ++incrementId,
+        name,
+      }));
+
+      // Mise à jour des distributionChannelIds
+      customersOrdersBagsContentsRaw.forEach((line) => {
+        line.distributionChannelId =
+          distributionChannels.find(
+            ({ name }) => name === line.distributionChannel
+          )?.id || null;
+      });
+
+      // 1.c. extraction des commandes
+      let orders = customersOrdersBagsContentsRaw.map(
+        ({
+          customerId,
+          orderDate,
+          distributionChannelId,
+          sellingPrice,
+          comments,
+        }) => ({
+          id: "",
+          customerId,
+          orderDate,
+          distributionChannelId,
+          sellingPrice,
+          comments,
+        })
+      );
+
+      // prettier-ignore
+      // @ts-expect-error
+      orders = Array.from(new Set(orders.map(JSON.stringify)), JSON.parse);
+
+      orders.forEach((order) => {
+        order.id = nanoid();
+      });
+
+      // Mise à jour des orderIds
+      customersOrdersBagsContentsRaw.forEach((line) => {
+        line.orderId =
+          orders.find(
+            ({ customerId, orderDate }) =>
+              orderDate === line.orderDate && customerId === line.customerId
+          )?.id || "";
+      });
+
+      // 1.d. extraction des sachets
+      let bags = customersOrdersBagsContentsRaw.map(
+        ({ bagNumber, orderId }) => ({ id: "", bagNumber, orderId })
+      );
+
+      // prettier-ignore
+      // @ts-expect-error
+      bags = Array.from(new Set(bags.map(JSON.stringify)), JSON.parse);
+
+      bags.forEach((bag) => {
+        bag.id = nanoid();
+      });
+
+      // Mise à jour des bagIds
+      customersOrdersBagsContentsRaw.forEach((line) => {
+        line.bagId =
+          bags.find(({ bagNumber }) => bagNumber === line.bagNumber)?.id || "";
+      });
+
+      // 2. Création des requêtes SQL
+
+      // 2.a. Clients
+      let customersQuery = `INSERT INTO customers (id, name) VALUES `;
+
+      for (const customer of customers) {
+        customersQuery += `("${customer.id}", "${customer.name}"),`;
+      }
+
+      // Replacement de la dernière virgule
+      customersQuery = customersQuery.replace(/,$/, ";");
+
+      customersCount = customers.length;
+
+      // 2.b. Canaux de distribution
+      let distributionChannelsQuery = `INSERT INTO distributionChannels (id, name) VALUES `;
+
+      for (const distributionChannel of distributionChannels) {
+        distributionChannelsQuery += `(${distributionChannel.id}, "${distributionChannel.name}"),`;
+      }
+
+      // Replacement de la dernière virgule
+      distributionChannelsQuery = distributionChannelsQuery.replace(/,$/, ";");
+
+      // 2.c. Commandes
+      let ordersQuery = `
+        INSERT INTO customersOrders
+        (id, customerId, orderDate, distributionChannelId, sellingPrice, comments)
+        VALUES `;
+
+      for (const order of orders) {
+        ordersQuery += `(
+          "${order.id}",
+          "${order.customerId}",
+          ${order.orderDate ? "'" + order.orderDate + "'" : null},
+          ${order.distributionChannelId},
+          ${order.sellingPrice},
+          "${order.comments}"
+          ),`;
+      }
+
+      // Replacement de la dernière virgule
+      ordersQuery = ordersQuery.replace(/,$/, ";");
+
+      ordersCount = orders.length;
+
+      // 2.d. Sachets
+      let bagsQuery = `INSERT INTO customersOrdersBags (id, number, orderId) VALUES `;
+
+      for (const bag of bags) {
+        bagsQuery += `("${bag.id}", "${bag.bagNumber}", "${bag.orderId}"),`;
+      }
+
+      // Replacement de la dernière virgule
+      bagsQuery = bagsQuery.replace(/,$/, ";");
+
+      bagsCount = bags.length;
+
+      // 2.e. Contenu des sachets
+      let bagsContentsQuery = `
+        INSERT INTO customersOrdersBagsContents
+        (id, bagId, quantity, batchId)
+        VALUES `;
+
+      for (const line of customersOrdersBagsContentsRaw) {
+        bagsContentsQuery += `(
+            "${nanoid()}",
+            "${line.bagId}",
+            ${line.quantity},
+            (SELECT id FROM batches WHERE batchNumberPhytessence = "${
+              line.batchNumberPhytessence
+            }")
+            ),`;
+      }
+
+      // Replacement de la dernière virgule
+      bagsContentsQuery = bagsContentsQuery.replace(/,$/, ";");
+
+      // 3. Insertion en base de données
+
+      await mysql.beginTransaction();
+
+      await mysql.query(`SET FOREIGN_KEY_CHECKS = 0`);
+
+      await mysql.query(
+        [
+          customersQuery,
+          distributionChannelsQuery,
+          ordersQuery,
+          bagsQuery,
+          bagsContentsQuery,
+        ].join("")
+      );
+
+      console.log("Importation terminée");
+
+      await mysql.query(`SET FOREIGN_KEY_CHECKS = 1`);
+
+      await mysql.commit();
+
+      mysql.unprepare(customersQuery);
+      mysql.unprepare(distributionChannelsQuery);
+      mysql.unprepare(ordersQuery);
+      mysql.unprepare(bagsQuery);
+      mysql.unprepare(bagsContentsQuery);
+    } catch (err) {
+      await mysql.rollback();
+
+      console.error(err);
+
+      return fail(500, { message: "Erreur lors de l'importation" });
+    }
+
+    return {
+      message:
+        "Données importées :<br/>" +
+        customersCount +
+        " clients<br/>" +
+        ordersCount +
+        " commandes clients<br/>" +
+        bagsCount +
+        " sachets<br/>",
+    };
+  },
+
+  /**
    * Supprimer toutes les données.
    */
   deleteAllData: async () => {
@@ -440,10 +696,15 @@ export const actions = {
       TRUNCATE TABLE customersOrdersBags;
       TRUNCATE TABLE customersOrders;
       TRUNCATE TABLE customers;
+      TRUNCATE TABLE distributionChannels;
       TRUNCATE TABLE batches;
       TRUNCATE TABLE suppliersOrdersContents;
       TRUNCATE TABLE suppliersOrders;
       TRUNCATE TABLE suppliers;
+      TRUNCATE TABLE recipesBagsContents;
+      TRUNCATE TABLE recipesBags;
+      TRUNCATE TABLE recipes;
+      TRUNCATE TABLE bagTypes;
       TRUNCATE TABLE plants;
       `;
 

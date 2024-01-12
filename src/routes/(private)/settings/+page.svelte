@@ -41,41 +41,6 @@
 />
 
 <div class="grid gap-4">
-  <!-- Importer les clients -->
-  <div class="card">
-    <header class="card-header">Importer des clients</header>
-    <div class="flex p-4">
-      <form
-        method="POST"
-        action="?/importCustomers"
-        enctype="multipart/form-data"
-        class="flex ml-2 gap-2"
-        use:enhance={() => {
-          importCustomersSubmitting = true;
-          return ({ result }) => {
-            showToast(result);
-            importCustomersSubmitting = false;
-            customersFileInput.value = "";
-          };
-        }}
-      >
-        <input
-          bind:this={customersFileInput}
-          type="file"
-          name="csvFile"
-          accept="text/csv"
-          class="input"
-          required
-        />
-        <button
-          type="submit"
-          class="btn variant-ghost-primary"
-          disabled={importCustomersSubmitting}>Importer</button
-        >
-      </form>
-    </div>
-  </div>
-
   <!-- Importer les commandes fournisseurs -->
   <div class="card">
     <header class="card-header">Importer des commandes founisseurs</header>
@@ -106,6 +71,41 @@
           type="submit"
           class="btn variant-ghost-primary"
           disabled={importSuppliersOrdersSubmitting}>Importer</button
+        >
+      </form>
+    </div>
+  </div>
+
+  <!-- Importer les commandes clients -->
+  <div class="card">
+    <header class="card-header">Importer les commandes clients</header>
+    <div class="flex p-4">
+      <form
+        method="POST"
+        action="?/importCustomersOrders"
+        enctype="multipart/form-data"
+        class="flex ml-2 gap-2"
+        use:enhance={() => {
+          importCustomersSubmitting = true;
+          return ({ result }) => {
+            showToast(result);
+            importCustomersSubmitting = false;
+            customersFileInput.value = "";
+          };
+        }}
+      >
+        <input
+          bind:this={customersFileInput}
+          type="file"
+          name="csvFile"
+          accept="text/csv"
+          class="input"
+          required
+        />
+        <button
+          type="submit"
+          class="btn variant-ghost-primary"
+          disabled={importCustomersSubmitting}>Importer</button
         >
       </form>
     </div>
