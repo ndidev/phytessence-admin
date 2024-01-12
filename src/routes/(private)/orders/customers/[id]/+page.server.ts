@@ -8,6 +8,10 @@ export const load = (async ({ fetch, params }) => {
     id: "",
     customerId: "",
     orderDate: "",
+    workforceCost: 0,
+    suppliesCost: 0,
+    sellingPrice: 0,
+    distributionChannelId: null,
     bags: [],
     comments: "",
   };
@@ -41,14 +45,16 @@ export const load = (async ({ fetch, params }) => {
     // Contenu des sachets
     if (bagsIds.length > 0) {
       const [bagsContentsRows] = await mysql.query(
-        `SELECT cobc.*
+        `
+          SELECT
+            cobc.*,
+            sf.plantId
           FROM customersOrdersBagsContents cobc
-          JOIN plants p ON p.id = cobc.plantId
-          JOIN batches b ON cobc.batchId = b.id
+          JOIN suppliersFull sf ON sf.batchId = cobc.batchId
           WHERE cobc.bagId IN (:bagsIds)
           ORDER BY
-            p.name,
-            b.batchNumberPhytessence`,
+            sf.plantName,
+            sf.batchNumberPhytessence`,
         {
           bagsIds,
         }
@@ -84,10 +90,23 @@ export const load = (async ({ fetch, params }) => {
   const batchesResponse = await fetch("/api/plants?format=batches");
   const batches = (await batchesResponse.json()) as PlantBatch[];
 
+  // Liste des canaux de distribution
+  const distributionChannelsResponse = await fetch(
+    "/api/distributionChannels?format=names"
+  );
+  const distributionChannels =
+    (await distributionChannelsResponse.json()) as DistributionChannelAutocomplete[];
+
+  // Liste des types de sachet
+  const bagTypesResponse = await fetch("/api/bagTypes?format=names");
+  const bagTypes = (await bagTypesResponse.json()) as BagTypeAutocomplete[];
+
   return {
     order,
     customers,
     plants,
     batches,
+    distributionChannels,
+    bagTypes,
   };
 }) satisfies PageServerLoad;

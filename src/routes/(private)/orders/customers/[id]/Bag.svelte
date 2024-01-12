@@ -1,7 +1,11 @@
 <script lang="ts">
+  import { getContext } from "svelte";
+
   import BagContents from "./BagContents.svelte";
 
   export let bag: CustomerOrderBag;
+
+  const bagTypes = getContext<BagTypeAutocomplete[]>("bagTypes");
 </script>
 
 <div class="card my-2 p-4">
@@ -10,6 +14,8 @@
       Sachet n°<a href="/stats/traceability/bag/{bag.id}" class="underline"
         >{bag.number}</a
       >
+      ({bagTypes.find(({ id }) => id === bag.bagTypeId)?.name ||
+        "Type de sachet non renseigné"})
     </div>
 
     {#each bag.contents as contents}

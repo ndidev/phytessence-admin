@@ -106,6 +106,8 @@ declare global {
       recipeId: Recipe["id"];
       /** Ordre (position) du sachet. */
       number: number;
+      /** Type de sachet. */
+      bagTypeId: BagType["id"] | null;
       /** Nombre de sachets dans la recette. */
       quantity: Quantity;
       /** Contenu du sachet. */
@@ -186,6 +188,18 @@ declare global {
     /** Date de la commande. */
     orderDate: DateString;
 
+    /** Coût de la main d'oeuvre. */
+    workforceCost: number;
+
+    /** Coût des fournitures. */
+    suppliesCost: number;
+
+    /** Prix de vente. */
+    sellingPrice: number;
+
+    /** Canal de distribution. */
+    distributionChannelId: DistributionChannel["id"] | null;
+
     /** Sachets de la commande. */
     bags: {
       /** Identifiant du sachet. */
@@ -194,6 +208,8 @@ declare global {
       orderId: Required<CustomerOrder>["id"];
       /** Numéro du sachet. */
       number: string;
+      /** Type de sachet. */
+      bagTypeId: BagType["id"] | null;
       /** Contenu du sachet. */
       contents: {
         /** Identifiant de la ligne de contenu. */
@@ -217,6 +233,24 @@ declare global {
    * Sachet d'une commande client.
    */
   type CustomerOrderBag = CustomerOrder["bags"][number];
+
+  /**
+   * Type de sachet.
+   */
+  type BagType = {
+    id: number;
+    name: string;
+    active?: boolean;
+  };
+
+  /**
+   * Canal de distribution
+   */
+  type DistributionChannel = {
+    id: number;
+    name: string;
+    active?: boolean;
+  };
 
   /**
    * Commande fournisseur.
@@ -280,12 +314,21 @@ declare global {
   type PlantAutocomplete = Required<Pick<Plant, "id" | "name" | "unit">>;
   type SupplierAutocomplete = Required<Pick<Supplier, "id" | "name">>;
   type CustomerAutocomplete = Required<Pick<Customer, "id" | "name">>;
+  type BatchAutocomplete = {
+    id: Batch["id"];
+    name: Batch["batchNumberPhytessence"];
+    plantId: Plant["id"];
+  };
+  type BagTypeAutocomplete = Omit<BagType, "active">;
+  type DistributionChannelAutocomplete = Omit<DistributionChannel, "active">;
 
   type PlantBatch = {
     id: Batch["id"];
     batchNumberPhytessence: Batch["batchNumberPhytessence"];
     plantId: Plant["id"];
     name: Plant["name"];
+    cost: number;
+    vat: number;
   };
 }
 

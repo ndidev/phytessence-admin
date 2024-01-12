@@ -68,7 +68,7 @@
     <!-- Quantité -->
     <QuantityInput
       name="contents.{ci}.batches.{bi}.quantity"
-      value={batch.quantity}
+      bind:value={batch.quantity}
       unit={plant.unit}
       required
     />

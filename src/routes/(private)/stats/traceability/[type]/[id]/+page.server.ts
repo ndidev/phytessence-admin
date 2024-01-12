@@ -66,6 +66,7 @@ export const load = (async ({ params }) => {
         p.unit as plantUnit,
         b.batchNumberSupplier,
         s.name as supplierName,
+        so.id,
         so.orderDate,
         so.deliveryDate,
         so.supplierReference
@@ -80,20 +81,17 @@ export const load = (async ({ params }) => {
 
     const customersOrdersDataSql = `
       SELECT
-        c.id as customerId,
-        c.name as customerName,
-        co.id as orderId,
-        co.orderDate,
-        cob.id as bagId,
-        cob.number as bagNumber,
-        cobc.quantity,
+        cf.customerId,
+        cf.customerName,
+        cf.orderId,
+        cf.orderDate,
+        cf.bagId,
+        cf.bagNumber,
+        cf.quantity,
         p.unit
-      FROM customersOrdersBagsContents cobc
-      JOIN customersOrdersBags cob ON cob.id = cobc.bagId
-      JOIN customersOrders co ON co.id = cob.orderId
-      JOIN customers c ON c.id = co.customerId
-      JOIN plants p ON p.id = cobc.plantId
-      WHERE cobc.batchId = :id
+      FROM customersFull cf
+      JOIN plants p ON p.id = cf.plantId
+      WHERE cf.batchId = :id
       ORDER BY
         customerName,
         orderDate,
@@ -196,10 +194,10 @@ export const load = (async ({ params }) => {
         cobc.*,
         p.name as plantName,
         p.unit,
-        b.batchNumberPhytessence
+        sf.batchNumberPhytessence
       FROM customersOrdersBagsContents cobc
-      JOIN plants p ON p.id = cobc.plantId
-      JOIN batches b ON cobc.batchId = b.id
+      JOIN suppliersFull sf ON sf.batchId = cobc.batchId
+      JOIN plants p ON p.id = sf.plantId
       WHERE cobc.bagId = :id
       ORDER BY p.name`;
 

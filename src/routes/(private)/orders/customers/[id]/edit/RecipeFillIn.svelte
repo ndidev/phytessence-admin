@@ -5,13 +5,14 @@
 
   import RecipeFillInBagContent from "./RecipeFillInBagContent.svelte";
 
-  import { QuantityInput } from "$lib/components";
+  import { QuantityInput, AutocompleteInput } from "$lib/components";
 
   // Props
   export let parent: SvelteComponent;
   export let recipe: RecipeWithBatch;
   export let plants: PlantAutocomplete[] = [];
-  export let batches: PlantBatch[] = [];
+  export let batches: BatchAutocomplete[] = [];
+  export let bagTypes: BagTypeAutocomplete[] = [];
 
   // Local
   const modalStore = getModalStore();
@@ -22,20 +23,14 @@
     }
     modalStore.clear();
   }
-
-  function filterBatches(plantId: Plant["id"]) {
-    return batches
-      .filter(({ plantId: plantId_ }) => plantId === plantId_)
-      .map((batch) => ({
-        id: batch.id,
-        name: batch.batchNumberPhytessence,
-      }));
-  }
 </script>
 
 {#if $modalStore[0]}
   <div class="card p-4 w-modal shadow-xl space-y-4">
     <header class="text-2xl font-bold">{recipe.name}</header>
+
+    <!-- Focus trap -->
+    <input class="hidden" />
 
     {#each recipe.bags as bag (bag.id)}
       <div class="card p-2 my-2">
@@ -43,19 +38,19 @@
           Sachet n°{bag.number}
         </div>
 
+        <div class="my-2">
+          <AutocompleteInput
+            placeholder="Type de sachet"
+            name=""
+            data={bagTypes}
+            bind:value={bag.bagTypeId}
+          />
+        </div>
+
         <QuantityInput name="" bind:value={bag.quantity} step={1} />
 
         {#each bag.contents as contents (contents.id)}
-          {@const plant = (plants || []).find(
-            ({ id }) => id === contents.plantId
-          ) || { id: "", name: "Plante inconnue", unit: "g" }}
-          {@const filteredBatches = filterBatches(plant.id)}
-
-          <RecipeFillInBagContent
-            {contents}
-            batches={filteredBatches}
-            {plant}
-          />
+          <RecipeFillInBagContent {contents} {plants} {batches} />
         {:else}
           <div class="card p-2 mt-2">Le sachet est vide</div>
         {/each}

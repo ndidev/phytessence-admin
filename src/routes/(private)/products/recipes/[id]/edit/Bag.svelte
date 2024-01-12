@@ -1,9 +1,15 @@
 <script lang="ts">
+  import { getContext } from "svelte";
+
   import { getModalStore } from "@skeletonlabs/skeleton";
 
   import BagContents from "./BagContents.svelte";
 
-  import { ConfirmModal, QuantityInput } from "$lib/components";
+  import {
+    ConfirmModal,
+    QuantityInput,
+    AutocompleteInput,
+  } from "$lib/components";
 
   import { createNewId, isNewId } from "$lib/utils";
 
@@ -14,6 +20,7 @@
 
   // Local
   const modalStore = getModalStore();
+  const bagTypes = getContext<BagTypeAutocomplete[]>("bagTypes");
 
   function addBagContents() {
     bag.contents.push({
@@ -65,9 +72,18 @@
       Sachet n°{bag.number}
     </div>
 
+    <div class="my-2">
+      <AutocompleteInput
+        placeholder="Type de sachet"
+        name="bags.{bi}.bagTypeId"
+        data={bagTypes}
+        bind:value={bag.bagTypeId}
+      />
+    </div>
+
     <QuantityInput
       name="bags.{bi}.quantity"
-      value={bag.quantity}
+      bind:value={bag.quantity}
       step={1}
       required
     />

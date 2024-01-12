@@ -3,27 +3,27 @@
 
   import { AutocompleteInput, QuantityInput } from "$lib/components";
 
+  // Props
   export let contents: CustomerOrderBag["contents"][0];
   /** Bag index - Index de la ligne de sachet */
   export let bi: number;
   /** Contents index - Index de la ligne de contenu */
   export let ci: number;
 
+  // Local
   const plants = getContext<PlantAutocomplete[]>("plants");
-  const batches = getContext<PlantBatch[]>("batches");
-
-  let batchNumberAutocomplete: AutocompleteInput;
-
-  $: plant =
+  const batches = getContext<BatchAutocomplete[]>("batches");
+  let plant =
     plants.find(({ id }) => contents.plantId === id) ||
     ({ id: "", name: "", unit: "g" } as PlantAutocomplete);
+  let filteredBatches = batches.filter(({ plantId }) => plantId === plant.id);
+  let batchNumberAutocomplete: AutocompleteInput<Plant["id"]>;
 
-  $: filteredBatches = batches
-    .filter(({ plantId }) => plantId === plant.id)
-    .map((batch) => ({
-      id: batch.id,
-      name: batch.batchNumberPhytessence,
-    }));
+  function filterBatches(plantId: Plant["id"]) {
+    filteredBatches = batches.filter(
+      ({ plantId: plantId_ }) => plantId === plantId_
+    );
+  }
 </script>
 
 <div class="card mt-2 p-2">
@@ -44,6 +44,7 @@
       data={plants}
       bind:value={contents.plantId}
       onInput={() => batchNumberAutocomplete.reset()}
+      afterSelection={filterBatches}
       required
     />
 
@@ -61,7 +62,7 @@
     <!-- Quantité -->
     <QuantityInput
       name="bags.{bi}.contents.{ci}.quantity"
-      value={contents.quantity}
+      bind:value={contents.quantity}
       unit={plant.unit}
       required
     />

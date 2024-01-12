@@ -69,11 +69,16 @@ export const load = (async ({ fetch, params }) => {
   }
 
   // Liste des plantes
-  const plantsResponse = await fetch("/api/plants?format=name");
+  const plantsResponse = await fetch("/api/plants?format=names");
   const plants = (await plantsResponse.json()) as PlantAutocomplete[];
+
+  // Liste des types de sachet
+  const bagTypesResponse = await fetch("/api/bagTypes?format=names");
+  const bagTypes = (await bagTypesResponse.json()) as BagType[];
 
   return {
     recipe,
     plants,
+    bagTypes,
   };
 }) satisfies PageServerLoad;

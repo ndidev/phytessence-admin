@@ -35,15 +35,17 @@ export const GET: RequestHandler = async ({ request }) => {
             b.id,
             b.batchNumberPhytessence,
             p.id as plantId,
-            p.name
+            p.name,
+            soc.cost,
+            soc.vat
           FROM batches b
-          LEFT JOIN suppliersOrdersContents c ON b.suppliersContentsId = c.id
-          LEFT JOIN plants p ON c.plantId = p.id
+          LEFT JOIN suppliersOrdersContents soc ON b.suppliersContentsId = soc.id
+          LEFT JOIN plants p ON soc.plantId = p.id
           ORDER BY
             p.name ASC,
-            batchNumberPhytessence ASC`
+            b.batchNumberPhytessence ASC`
       );
-      plants = plantsRows as PlantAutocomplete[];
+      plants = plantsRows as PlantBatch[];
       break;
 
     default:

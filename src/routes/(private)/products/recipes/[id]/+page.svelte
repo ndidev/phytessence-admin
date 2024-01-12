@@ -15,9 +15,10 @@
     goto("./edit");
   }
 
-  let { recipe, plants } = data;
+  let { recipe, plants, bagTypes } = data;
 
   setContext("plants", plants);
+  setContext("bagTypes", bagTypes);
 </script>
 
 <PageHeader

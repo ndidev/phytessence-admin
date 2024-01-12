@@ -5,6 +5,7 @@
 
   type Data = {
     supplierOrder: {
+      id: ID;
       batchNumberPhytessence: Batch["batchNumberPhytessence"];
       plantName: Plant["name"];
       plantUnit: Plant["unit"];
@@ -54,6 +55,11 @@
 
 <div class="card p-2 my-4">
   {#if supplierOrder}
+    <div>
+      <a href="/orders/suppliers/{supplierOrder.id}" class="underline"
+        >Accéder à la commande</a
+      >
+    </div>
     <div>Plante : {supplierOrder.plantName}</div>
     <div>Fournisseur : {supplierOrder.supplierName}</div>
     <div>

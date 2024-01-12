@@ -13,6 +13,7 @@
   export let recipes: Recipe[] = [];
   export let plants: PlantAutocomplete[] = [];
   export let batches: PlantBatch[] = [];
+  export let bagTypes: BagTypeAutocomplete[] = [];
 
   // Local
   const modalStore = getModalStore();
@@ -30,6 +31,7 @@
             recipe: structuredClone(selectedRecipe),
             plants,
             batches,
+            bagTypes,
           },
         },
         response: (r) => {

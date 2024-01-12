@@ -6,43 +6,35 @@ export const load = (async ({ params }) => {
 
   const inwardSql = `
     SELECT
-      b.id as batchId,
-      b.batchNumberPhytessence,
-      b.batchNumberSupplier,
-      b.quantity,
-      so.deliveryDate
+      sf.batchId,
+      sf.batchNumberPhytessence,
+      sf.batchNumberSupplier,
+      sf.quantity,
+      sf.deliveryDate
     FROM
-      batches b
-    JOIN
-      suppliersOrdersContents soc ON soc.id = b.suppliersContentsId
-    JOIN
-      suppliersOrders so ON so.id = soc.orderId
+      suppliersFull sf
     WHERE
-      soc.plantId = :id
+      sf.plantId = :id
     ORDER BY
-      so.deliveryDate DESC`;
+      sf.deliveryDate DESC`;
 
   const outwardSql = `
     SELECT
-      co.id as orderId,
-      co.orderDate,
-      cob.id as bagId,
-      cob.number as bagNumber,
-      b.id as batchId,
+      cf.orderId,
+      cf.orderDate,
+      cf.bagId,
+      cf.bagNumber,
+      cf.batchId,
       b.batchNumberPhytessence,
-      cobc.quantity
+      cf.quantity
     FROM
-      customersOrdersBagsContents cobc
+      customersFull cf
     JOIN
-      customersOrdersBags cob ON cob.id = cobc.bagId
-    JOIN
-      customersOrders co ON co.id = cob.orderId
-    JOIN
-      batches b ON b.id = cobc.batchId
+      batches b ON b.id = cf.batchId
     WHERE
-      cobc.plantId = :id
+      cf.plantId = :id
     ORDER BY
-      co.orderDate DESC`;
+      cf.orderDate DESC`;
 
   const [plantRow] = (await mysql.query(plantSql, {
     id: params.id,

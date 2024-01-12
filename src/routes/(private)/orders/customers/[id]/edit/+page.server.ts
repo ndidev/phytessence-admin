@@ -9,6 +9,10 @@ export const load = (async ({ fetch, params, url }) => {
     id: "",
     customerId: "",
     orderDate: "",
+    workforceCost: 0,
+    suppliesCost: 0,
+    sellingPrice: 0,
+    distributionChannelId: null,
     bags: [],
     comments: "",
   };
@@ -47,14 +51,16 @@ export const load = (async ({ fetch, params, url }) => {
     // Contenu des sachets
     if (bagsIds.length > 0) {
       const [bagsContents] = (await mysql.query(
-        `SELECT cobc.*
+        `
+          SELECT
+            cobc.*,
+            sf.plantId
           FROM customersOrdersBagsContents cobc
-          JOIN plants p ON p.id = cobc.plantId
-          JOIN batches b ON cobc.batchId = b.id
+          JOIN suppliersFull sf ON sf.batchId = cobc.batchId
           WHERE cobc.bagId IN (:bagsIds)
           ORDER BY
-            p.name,
-            b.batchNumberPhytessence`,
+            sf.plantName,
+            sf.batchNumberPhytessence`,
         { bagsIds }
       )) as unknown as Array<CustomerOrderBag["contents"]>;
 
@@ -93,8 +99,19 @@ export const load = (async ({ fetch, params, url }) => {
   const recipes = (await recipesResponse.json()) as Recipe[];
 
   // Liste des lots
-  const batchesResponse = await fetch("/api/plants?format=batches");
-  const batches = (await batchesResponse.json()) as PlantBatch[];
+  const batchesResponse = await fetch("/api/batches?format=autocomplete");
+  const batches = (await batchesResponse.json()) as BatchAutocomplete[];
+
+  // Liste des canaux de distribution
+  const distributionChannelsResponse = await fetch(
+    "/api/distributionChannels?format=autocomplete"
+  );
+  const distributionChannels =
+    (await distributionChannelsResponse.json()) as DistributionChannelAutocomplete[];
+
+  // Liste des types de sachet
+  const bagTypesResponse = await fetch("/api/bagTypes?format=autocomplete");
+  const bagTypes = (await bagTypesResponse.json()) as BagTypeAutocomplete[];
 
   return {
     order,
@@ -102,6 +119,8 @@ export const load = (async ({ fetch, params, url }) => {
     plants,
     recipes,
     batches,
+    distributionChannels,
+    bagTypes,
     lastbagNumber: lastBagNumber,
   };
 }) satisfies PageServerLoad;
@@ -148,12 +167,18 @@ export const actions = {
             id = :id,
             customerId = :customerId,
             orderDate = :orderDate,
+            workforceCost = :workforceCost,
+            suppliesCost = :suppliesCost,
+            sellingPrice = :sellingPrice,
             comments = :comments
       `,
         {
           id: orderId,
           customerId: parsedData.customerId,
           orderDate: parsedData.orderDate || null,
+          workforceCost: parsedData.workforceCost || 0,
+          suppliesCost: parsedData.suppliesCost || 0,
+          sellingPrice: parsedData.sellingPrice || 0,
           comments: parsedData.comments,
         }
       );
@@ -169,12 +194,14 @@ export const actions = {
             SET
               id = :bagId,
               orderId = :orderId,
-              number = :number
+              number = :number,
+              bagTypeId = :bagTypeId
         `,
           {
             bagId,
             orderId,
             number: bag.number.trim() || ++lastbagNumber,
+            bagTypeId: bag.bagTypeId || null,
           }
         );
 
@@ -185,14 +212,12 @@ export const actions = {
               SET
                 id = :id,
                 bagId = :bagId,
-                plantId = :plantId,
                 quantity = :quantity,
                 batchId = :batchId
           `,
             {
               id: nanoid(),
               bagId,
-              plantId: contents.plantId,
               quantity: contents.quantity,
               batchId: contents.batchId,
             }
@@ -256,6 +281,9 @@ export const actions = {
           SET
           customerId = :customerId,
           orderDate = :orderDate,
+          workforceCost = :workforceCost,
+          suppliesCost = :suppliesCost,
+          sellingPrice = :sellingPrice,
           comments = :comments
           WHERE
           id = :id
@@ -264,6 +292,9 @@ export const actions = {
           id: orderId,
           customerId: parsedData.customerId,
           orderDate: parsedData.orderDate || null,
+          workforceCost: parsedData.workforceCost || 0,
+          suppliesCost: parsedData.suppliesCost || 0,
+          sellingPrice: parsedData.sellingPrice || 0,
           comments: parsedData.comments,
         }
       );
@@ -297,11 +328,13 @@ export const actions = {
               SET
                 id = :bagId,
                 orderId = :orderId,
-                number = :number`
+                number = :number,
+                bagTypeId = :bagTypeId`
           : `UPDATE customersOrdersBags
               SET
                 orderId = :orderId,
-                number = :number
+                number = :number,
+                bagTypeId = :bagTypeId
               WHERE
                 id = :bagId`;
 
@@ -309,6 +342,7 @@ export const actions = {
           bagId,
           orderId,
           number: bag.number.trim() || ++lastbagNumber,
+          bagTypeId: bag.bagTypeId || null,
         });
 
         bag.contents ||= [];
@@ -336,13 +370,11 @@ export const actions = {
                 SET
                   id = :contentsId,
                   bagId = :bagId,
-                  plantId = :plantId,
                   quantity = :quantity,
                   batchId = :batchId`
             : `UPDATE customersOrdersBagsContents
                 SET
                   bagId = :bagId,
-                  plantId = :plantId,
                   quantity = :quantity,
                   batchId = :batchId
                 WHERE
@@ -351,7 +383,6 @@ export const actions = {
           await mysql.execute(contentsSql, {
             contentsId,
             bagId,
-            plantId: contents.plantId,
             quantity: contents.quantity,
             batchId: contents.batchId,
           });
@@ -400,8 +431,8 @@ export const actions = {
 async function getLastBagNumber() {
   const date = new Date();
   const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
 
   const datePart = [year, month, day].join("");
 

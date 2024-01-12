@@ -20,7 +20,7 @@ export const load = (async () => {
       o.comments
     FROM customersOrders o
     LEFT JOIN customers c ON c.id = o.customerId
-    ORDER BY o.orderDate DESC, o.id DESC
+    ORDER BY o.orderDate DESC, c.name ASC
     `;
 
   try {

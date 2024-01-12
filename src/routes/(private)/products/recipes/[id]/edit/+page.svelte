@@ -18,11 +18,12 @@
   } from "$lib/components";
   import { showToastActionResult, createNewId, isNewId } from "$lib/utils";
 
-  let { recipe, plants } = data;
+  let { recipe, plants, bagTypes } = data;
 
   let recipeName = recipe.name;
 
   setContext("plants", plants);
+  setContext("bagTypes", bagTypes);
 
   // Local
   const modalStore = getModalStore();
@@ -34,6 +35,7 @@
       id: createNewId(),
       recipeId: recipe.id,
       number: recipe.bags.length + 1, // Mettre en dernière position
+      bagTypeId: null,
       quantity: 1,
       contents: [],
     });

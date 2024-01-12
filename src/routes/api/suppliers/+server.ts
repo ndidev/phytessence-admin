@@ -20,6 +20,15 @@ export const GET: RequestHandler = async ({ request }) => {
       suppliers = suppliersRows as SupplierAutocomplete[];
       break;
 
+    case "names":
+      [suppliersRows] = await mysql.query(
+        `SELECT id, name
+            FROM suppliers
+            ORDER BY name ASC`
+      );
+      suppliers = suppliersRows as SupplierAutocomplete[];
+      break;
+
     default:
       [suppliersRows] = await mysql.query(`SELECT * FROM suppliers`);
       suppliers = suppliersRows as Supplier[];

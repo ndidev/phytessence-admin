@@ -14,7 +14,7 @@
   />
   ```
  -->
-<script lang="ts">
+<script lang="ts" generics="IDType extends string | number">
   import {
     Autocomplete,
     type AutocompleteOption,
@@ -28,15 +28,24 @@
   let idInput: HTMLInputElement;
 
   export let label = "";
-  export let name: string;
+  export let name = "";
   let inputId = nanoid();
   export { inputId as id };
   export let placeholder = "";
-  export let data: { name: string; id: ID; [key: string]: any }[];
-  export let value: ID;
+  export let data: {
+    name: string;
+    // id: string | number | null;
+    id: IDType;
+    [key: string]: any;
+  }[];
+  export let value: (typeof data)[number]["id"] | null;
   export let required = false;
   export let disabled: boolean | null | undefined = false;
   export let onInput: (e: Event) => void = () => {};
+  export let afterSelection: (
+    selectedId: (typeof data)[number]["id"],
+    ...rest: any
+  ) => void = () => {};
 
   let searchTerm = data.find(({ id }) => value === id)?.name || "";
 
@@ -55,11 +64,12 @@
     const selectedId = event.detail.value as (typeof data)[number]["id"];
     value = selectedId;
     searchTerm = data.find(({ id }) => selectedId === id)?.name || "";
+    afterSelection(selectedId);
   }
 
   export function reset() {
     searchTerm = "";
-    value = "";
+    value = null;
   }
 </script>
 
@@ -75,13 +85,11 @@
     placeholder={placeholder || label + "..."}
     use:popup={popupSettings}
     on:input={(e) => {
-      value = "";
+      value = null;
       onInput(e);
     }}
     on:blur={() => {
-      value = String(
-        data.find(({ name }) => name == nameInput.value)?.id || ""
-      );
+      value = data.find(({ name }) => name == nameInput.value)?.id || null;
     }}
     {required}
     {disabled}

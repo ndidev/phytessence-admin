@@ -89,9 +89,14 @@ export const load = (async ({ fetch, params, url }) => {
   const plantsResponse = await fetch("/api/plants?format=autocomplete");
   const plants = (await plantsResponse.json()) as PlantAutocomplete[];
 
+  // Liste des types de sachet
+  const bagTypesResponse = await fetch("/api/bagTypes?format=autocomplete");
+  const bagTypes = (await bagTypesResponse.json()) as BagTypeAutocomplete[];
+
   return {
     recipe,
     plants,
+    bagTypes,
   };
 }) satisfies PageServerLoad;
 
@@ -158,12 +163,14 @@ export const actions = {
               id = :bagId,
               recipeId = :recipeId,
               number = :number,
+              bagTypeId = :bagTypeId,
               quantity = :quantity
         `,
           {
             bagId,
             recipeId,
             number: bag.number,
+            bagTypeId: bag.bagTypeId || null,
             quantity: bag.quantity,
           }
         );
@@ -283,10 +290,12 @@ export const actions = {
                 id = :bagId,
                 recipeId = :recipeId,
                 number = :number,
+                bagTypeId = :bagTypeId,
                 quantity = :quantity`
           : `UPDATE recipesBags
               SET
                 number = :number,
+                bagTypeId = :bagTypeId,
                 quantity = :quantity
               WHERE
                 id = :bagId`;
@@ -295,6 +304,7 @@ export const actions = {
           bagId,
           recipeId,
           number: bag.number,
+          bagTypeId: bag.bagTypeId || null,
           quantity: bag.quantity,
         });
 

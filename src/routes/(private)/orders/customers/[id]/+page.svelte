@@ -8,7 +8,7 @@
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
   import { PageHeader } from "$lib/components";
-  import { DateUtils } from "$lib/utils";
+  import { DateUtils, formatQuantity } from "$lib/utils";
 
   import Bag from "./Bag.svelte";
 
@@ -16,16 +16,31 @@
     goto("./edit");
   }
 
-  let { order, customers, plants, batches } = data;
+  let { order, customers, plants, batches, distributionChannels, bagTypes } =
+    data;
 
   setContext("plants", plants);
   setContext("batches", batches);
+  setContext("bagTypes", bagTypes);
 
   const customerName =
     customers.find(({ id }) => id === order.customerId)?.name ||
     "Client inconnu";
 
   const formattedOrderDate = new DateUtils(order.orderDate).format();
+
+  const plantsCost: number = order.bags
+    .map(({ contents }) =>
+      contents.map((contents) => {
+        const batch = batches.find(({ id }) => id === contents.batchId);
+        const cost = batch?.cost || NaN;
+        const vat = batch?.vat || NaN;
+
+        return contents.quantity * (cost / 1000) * (1 + vat / 100);
+      })
+    )
+    .flat(2)
+    .reduce((prev, sum) => prev + sum, 0);
 </script>
 
 <PageHeader
@@ -63,6 +78,52 @@
 <!-- Date de commande -->
 <div>
   Date de commande : <span>{formattedOrderDate.long}</span>
+</div>
+
+<!-- Canal de distribution -->
+<div>
+  Canal de distribution : <span
+    >{distributionChannels.find(({ id }) => id === order.distributionChannelId)
+      ?.name || "Non renseigné"}</span
+  >
+</div>
+
+<div class="my-2">
+  <!-- Coût des plantes -->
+  <div>
+    Coût des plantes (TTC) : <span>{formatQuantity(plantsCost, "€")}</span>
+  </div>
+
+  <!-- Coût des fournitures -->
+  <div>
+    Coût des fournitures : <span>{formatQuantity(order.suppliesCost, "€")}</span
+    >
+  </div>
+
+  <!-- Coût de la main d'oeuvre -->
+  <div>
+    Coût de la main d'oeuvre : <span
+      >{formatQuantity(order.workforceCost, "€")}</span
+    >
+  </div>
+
+  <!-- Prix de vente -->
+  <div>
+    Prix de vente (TTC) : <span>{formatQuantity(order.sellingPrice, "€")}</span>
+  </div>
+
+  <!-- Marge -->
+  <div>
+    Marge : <span
+      >{formatQuantity(
+        order.sellingPrice -
+          plantsCost -
+          order.workforceCost -
+          order.suppliesCost,
+        "€"
+      )}</span
+    >
+  </div>
 </div>
 
 <!-- Commentaires -->

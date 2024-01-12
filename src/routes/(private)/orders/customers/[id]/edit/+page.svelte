@@ -18,6 +18,7 @@
     DateInput,
     Textarea,
     ConfirmModal,
+    QuantityInput,
   } from "$lib/components";
   import {
     showToastActionResult,
@@ -26,10 +27,12 @@
     DateUtils,
   } from "$lib/utils";
 
-  let { order, customers, plants, recipes, batches, lastbagNumber } = data;
+  let { order, customers, plants, recipes, batches, bagTypes, lastbagNumber } =
+    data;
 
   setContext("plants", plants);
   setContext("batches", batches);
+  setContext("bagTypes", bagTypes);
 
   // Local
   const modalStore = getModalStore();
@@ -47,6 +50,7 @@
       id: createNewId(),
       orderId: order.id,
       number: "~" + String(++lastbagNumber), // "~" = numéro temporaire
+      bagTypeId: null,
       contents: [],
     });
 
@@ -92,17 +96,19 @@
           recipes,
           plants,
           batches,
+          bagTypes,
         },
       },
       response: (recipe: RecipeWithBatch) => {
         if (recipe) {
           const addedBags: CustomerOrderBag[] = [];
-          recipe.bags.forEach(({ quantity, contents }) => {
+          recipe.bags.forEach(({ quantity, contents, bagTypeId }) => {
             for (let i = 0; i < quantity; i++) {
               addedBags.push({
                 id: createNewId(),
                 orderId: order.id,
                 number: "~" + String(++lastbagNumber),
+                bagTypeId,
                 // @ts-ignore
                 contents: contents.map(({ plantId, quantity, batchId }) => ({
                   id: createNewId(),
@@ -177,6 +183,32 @@
     value={order.orderDate}
     required
   />
+
+  <fieldset class="my-2 grid md:grid-cols-3 gap-4">
+    <!-- Coût de la main d'oeuvre -->
+    <QuantityInput
+      label="Coût de main d'oeuvre"
+      name="workforceCost"
+      bind:value={order.workforceCost}
+      unit="€"
+    />
+
+    <!-- Coût des fournitures -->
+    <QuantityInput
+      label="Coût des fournitures"
+      name="suppliesCost"
+      bind:value={order.suppliesCost}
+      unit="€"
+    />
+
+    <!-- Prix de vente -->
+    <QuantityInput
+      label="Prix de vente (TTC)"
+      name="sellingPrice"
+      bind:value={order.sellingPrice}
+      unit="€"
+    />
+  </fieldset>
 
   <!-- Commentaires -->
   <Textarea label="Commentaires" name="comments" value={order.comments} />

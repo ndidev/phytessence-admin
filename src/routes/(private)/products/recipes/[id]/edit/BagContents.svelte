@@ -39,7 +39,7 @@
     <!-- Quantité -->
     <QuantityInput
       name="bags.{bi}.contents.{ci}.quantity"
-      value={contents.quantity}
+      bind:value={contents.quantity}
       unit={plant.unit}
       required
     />

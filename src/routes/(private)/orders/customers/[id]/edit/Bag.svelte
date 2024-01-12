@@ -1,9 +1,11 @@
 <script lang="ts">
+  import { getContext } from "svelte";
+
   import { getModalStore } from "@skeletonlabs/skeleton";
 
   import BagContents from "./BagContents.svelte";
 
-  import { ConfirmModal } from "$lib/components";
+  import { ConfirmModal, AutocompleteInput } from "$lib/components";
 
   import { createNewId, isNewId } from "$lib/utils";
 
@@ -14,14 +16,15 @@
 
   // Local
   const modalStore = getModalStore();
+  const bagTypes = getContext<BagTypeAutocomplete[]>("bagTypes");
 
   function addBagContents() {
     bag.contents.push({
       id: createNewId(),
       bagId: bag.id,
       plantId: "",
-      quantity: 0,
       batchId: "",
+      quantity: 0,
     });
 
     bag = bag;
@@ -78,13 +81,23 @@
       {#if tempBagNumber}
         <span>(numéro temporaire)</span>
       {/if}
+
+      <input
+        type="hidden"
+        name="bags.{bi}.number"
+        value={tempBagNumber ? "" : bagNumber}
+        readonly
+      />
     </div>
-    <input
-      type="hidden"
-      name="bags.{bi}.number"
-      value={tempBagNumber ? "" : bagNumber}
-      readonly
-    />
+
+    <div class="my-2">
+      <AutocompleteInput
+        placeholder="Type de sachet"
+        name="bags.{bi}.bagTypeId"
+        data={bagTypes}
+        bind:value={bag.bagTypeId}
+      />
+    </div>
 
     {#each bag.contents as contents, ci (contents.id)}
       <BagContents

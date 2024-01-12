@@ -3,7 +3,7 @@
   import { nanoid } from "$lib/utils";
 
   export let label = "Quantité";
-  export let name: string;
+  export let name = "";
   export let id = nanoid();
   export let value: number | null;
   export let unit: string = "";

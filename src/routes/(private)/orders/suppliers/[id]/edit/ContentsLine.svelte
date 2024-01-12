@@ -86,7 +86,7 @@
     <!-- Quantité -->
     <QuantityInput
       name="contents.{ci}.quantity"
-      value={contents.quantity}
+      bind:value={contents.quantity}
       unit={plant.unit}
       required
     />
@@ -95,7 +95,7 @@
     <QuantityInput
       label="Coût HT"
       name="contents.{ci}.cost"
-      value={contents.cost}
+      bind:value={contents.cost}
       unit={"€/" + (plant.unit === "g" ? "kg" : plant.unit)}
     />
 
@@ -103,7 +103,7 @@
     <QuantityInput
       label="Taux de TVA"
       name="contents.{ci}.vat"
-      value={contents.vat}
+      bind:value={contents.vat}
       unit="%"
       datalistId="vat-rates-{contents.id}"
     />
