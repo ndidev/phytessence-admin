@@ -330,6 +330,13 @@ declare global {
     cost: number;
     vat: number;
   };
+
+  type SettingsGenericLine = {
+    id: number;
+    name: string;
+    active?: boolean;
+    [key: string]: any;
+  };
 }
 
 export {};

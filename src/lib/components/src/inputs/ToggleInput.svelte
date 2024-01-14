@@ -2,7 +2,7 @@
   import { SlideToggle } from "@skeletonlabs/skeleton";
 
   export let label = "";
-  export let name: string;
+  export let name = "";
   export let checked = false;
   export let disabled: boolean | null | undefined = false;
 </script>

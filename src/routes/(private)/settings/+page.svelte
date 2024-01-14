@@ -1,35 +1,16 @@
 <script lang="ts">
+  import { getContext } from "svelte";
+  import { TabGroup, Tab } from "@skeletonlabs/skeleton";
+
   import { PageHeader } from "$lib/components";
-  import { enhance } from "$app/forms";
-  import { getToastStore } from "@skeletonlabs/skeleton";
-  import type { ActionResult } from "@sveltejs/kit";
 
-  const toastStore = getToastStore();
+  import ImportPanel from "./ImportPanel.svelte";
+  import BagTypesPanel from "./BagTypesPanel.svelte";
+  import DistributionChannelPannel from "./DistributionChannelPannel.svelte";
 
-  function showToast(result: ActionResult) {
-    if (result.type === "success") {
-      toastStore.trigger({
-        message: String(result.data?.message),
-        timeout: 3 * 1000,
-        background: "variant-filled-success",
-      });
-    }
+  let panel = BagTypesPanel;
 
-    if (result.type === "failure") {
-      toastStore.trigger({
-        message: String(result.data?.message || "Erreur"),
-        timeout: 3 * 1000,
-        background: "variant-filled-error",
-      });
-    }
-  }
-
-  let suppliersOrdersFileInput: HTMLInputElement;
-  let customersFileInput: HTMLInputElement;
-
-  let deleteDataSubmitting = false;
-  let importSuppliersOrdersSubmitting = false;
-  let importCustomersSubmitting = false;
+  $: user = getContext<User>("user");
 </script>
 
 <PageHeader
@@ -40,99 +21,26 @@
   ]}
 />
 
-<div class="grid gap-4">
-  <!-- Importer les commandes fournisseurs -->
-  <div class="card">
-    <header class="card-header">Importer des commandes founisseurs</header>
-    <div class="flex p-4">
-      <form
-        method="POST"
-        action="?/importSuppliersOrders"
-        enctype="multipart/form-data"
-        class="flex ml-2 gap-2"
-        use:enhance={() => {
-          importSuppliersOrdersSubmitting = true;
-          return ({ result }) => {
-            showToast(result);
-            importSuppliersOrdersSubmitting = false;
-            suppliersOrdersFileInput.value = "";
-          };
-        }}
-      >
-        <input
-          bind:this={suppliersOrdersFileInput}
-          type="file"
-          name="csvFile"
-          accept="text/csv"
-          class="input"
-          required
-        />
-        <button
-          type="submit"
-          class="btn variant-ghost-primary"
-          disabled={importSuppliersOrdersSubmitting}>Importer</button
-        >
-      </form>
-    </div>
-  </div>
+<TabGroup>
+  <Tab bind:group={panel} name="bagTypes" value={BagTypesPanel}>
+    <span class="material-symbols-outlined">shopping_bag</span>
+    <span>Types de sachet</span>
+  </Tab>
+  <Tab
+    bind:group={panel}
+    name="distributionChannels"
+    value={DistributionChannelPannel}
+  >
+    <span class="material-symbols-outlined">store</span>
+    <span>Canaux de distribution</span>
+  </Tab>
+  {#if user.super}
+    <Tab bind:group={panel} name="import" value={ImportPanel}>
+      <span class="material-symbols-outlined">upload</span>
+      <span>Importer les données</span>
+    </Tab>
+  {/if}
 
-  <!-- Importer les commandes clients -->
-  <div class="card">
-    <header class="card-header">Importer les commandes clients</header>
-    <div class="flex p-4">
-      <form
-        method="POST"
-        action="?/importCustomersOrders"
-        enctype="multipart/form-data"
-        class="flex ml-2 gap-2"
-        use:enhance={() => {
-          importCustomersSubmitting = true;
-          return ({ result }) => {
-            showToast(result);
-            importCustomersSubmitting = false;
-            customersFileInput.value = "";
-          };
-        }}
-      >
-        <input
-          bind:this={customersFileInput}
-          type="file"
-          name="csvFile"
-          accept="text/csv"
-          class="input"
-          required
-        />
-        <button
-          type="submit"
-          class="btn variant-ghost-primary"
-          disabled={importCustomersSubmitting}>Importer</button
-        >
-      </form>
-    </div>
-  </div>
-
-  <!-- Supprimer touts les données -->
-  <div class="card">
-    <header class="card-header">Supprimer toutes les données</header>
-    <div class="flex p-4">
-      <form
-        method="POST"
-        action="?/deleteAllData"
-        class="flex ml-2 gap-2"
-        use:enhance={() => {
-          deleteDataSubmitting = true;
-          return ({ result }) => {
-            showToast(result);
-            deleteDataSubmitting = false;
-          };
-        }}
-      >
-        <button
-          type="submit"
-          class="btn variant-ghost-error"
-          disabled={deleteDataSubmitting}>Supprimer les données</button
-        >
-      </form>
-    </div>
-  </div>
-</div>
+  <!-- Panels -->
+  <svelte:component this={panel} slot="panel" />
+</TabGroup>

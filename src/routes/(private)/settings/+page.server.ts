@@ -4,9 +4,9 @@ import { nanoid } from "$lib/utils";
 import { fail, redirect } from "@sveltejs/kit";
 
 export const load = (async ({ locals }) => {
-  if (!locals.user?.super) {
-    redirect(302, "/");
-  }
+  // if (!locals.user?.super) {
+  //   redirect(302, "/");
+  // }
 
   return {};
 }) satisfies PageServerLoad;

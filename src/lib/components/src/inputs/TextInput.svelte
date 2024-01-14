@@ -2,7 +2,7 @@
   import { nanoid } from "$lib/utils";
 
   export let label = "";
-  export let name: string;
+  export let name = "";
   export let id: string = nanoid();
   export let value: string | null;
   export let placeholder = "";

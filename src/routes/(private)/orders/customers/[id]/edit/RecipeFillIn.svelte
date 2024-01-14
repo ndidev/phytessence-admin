@@ -41,13 +41,12 @@
         <div class="my-2">
           <AutocompleteInput
             placeholder="Type de sachet"
-            name=""
             data={bagTypes}
             bind:value={bag.bagTypeId}
           />
         </div>
 
-        <QuantityInput name="" bind:value={bag.quantity} step={1} />
+        <QuantityInput bind:value={bag.quantity} step={1} />
 
         {#each bag.contents as contents (contents.id)}
           <RecipeFillInBagContent {contents} {plants} {batches} />
