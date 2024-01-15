@@ -27,8 +27,16 @@
     DateUtils,
   } from "$lib/utils";
 
-  let { order, customers, plants, recipes, batches, bagTypes, lastbagNumber } =
-    data;
+  let {
+    order,
+    customers,
+    plants,
+    recipes,
+    batches,
+    bagTypes,
+    distributionChannels,
+    lastbagNumber,
+  } = data;
 
   setContext("plants", plants);
   setContext("batches", batches);
@@ -182,6 +190,14 @@
     name="orderDate"
     value={order.orderDate}
     required
+  />
+
+  <!-- Canal de distribution -->
+  <AutocompleteInput
+    label="Canal de distribution"
+    name="distributionChannelId"
+    data={distributionChannels}
+    bind:value={order.distributionChannelId}
   />
 
   <fieldset class="my-2 grid md:grid-cols-3 gap-4">
