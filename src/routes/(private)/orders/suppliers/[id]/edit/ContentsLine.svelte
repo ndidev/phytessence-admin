@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getContext } from "svelte";
+  import { getContext, createEventDispatcher } from "svelte";
 
   import { getModalStore } from "@skeletonlabs/skeleton";
 
@@ -15,11 +15,13 @@
 
   // Props
   export let contents: SupplierOrder["contents"][0];
+  export let order: SupplierOrder;
   /** Contents index - Index de la ligne de contenu */
   export let ci: number;
 
   // Local
   const modalStore = getModalStore();
+  const dispatch = createEventDispatcher();
   const plants = getContext<PlantAutocomplete[]>("plants");
   $: plant =
     plants.find(({ id }) => contents.plantId === id) ||
@@ -39,18 +41,18 @@
     contents = contents;
   }
 
-  function deleteBatch(batchId: Batch["id"]) {
-    if (isNewId(batchId)) {
+  function deleteContentsLine() {
+    if (isNewId(contents.id)) {
       _actualDelete();
     }
 
-    if (!isNewId(batchId)) {
+    if (!isNewId(contents.id)) {
       modalStore.trigger({
         type: "component",
         component: {
           ref: ConfirmModal,
           props: {
-            title: "Supprimer le lot",
+            title: "Supprimer la plante",
             onConfirm: () => {
               _actualDelete();
               modalStore.clear();
@@ -59,13 +61,14 @@
               modalStore.close();
             },
           },
-          slot: "<p>Confirmez-vous la suppression de ce lot de la commande ?</p>",
+          slot: "<p>Confirmez-vous la suppression de cette plante de la commande ?</p>",
         },
       });
     }
 
     function _actualDelete() {
-      contents.batches = contents.batches.filter(({ id }) => id !== batchId);
+      order.contents = order.contents.filter(({ id }) => id !== contents.id);
+      dispatch("contentsDeleted");
     }
   }
 </script>
@@ -119,7 +122,14 @@
     <div class="h6 mt-2">Lots</div>
 
     {#each contents.batches as batch, bi (batch.id)}
-      <Batch {batch} {ci} {bi} {plant} on:click={() => deleteBatch(batch.id)} />
+      <Batch
+        {contents}
+        {batch}
+        {ci}
+        {bi}
+        {plant}
+        on:batchDeleted={() => (contents.batches = contents.batches)}
+      />
     {:else}
       <div class="card p-2 mt-2">Aucun lot renseigné</div>
     {/each}
@@ -131,7 +141,9 @@
     on:click={addBatch}>Ajouter un lot</button
   >
 
-  <button type="button" class="btn variant-soft-error mt-2" on:click
-    >Supprimer cette plante de la commande</button
+  <button
+    type="button"
+    class="btn variant-soft-error mt-2"
+    on:click={deleteContentsLine}>Supprimer cette plante de la commande</button
   >
 </div>

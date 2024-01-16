@@ -7,7 +7,7 @@
 
   import { page } from "$app/stores";
   import { PageHeader } from "$lib/components";
-  import { formatQuantity } from "$lib/utils";
+  import { formatQuantity, DateUtils } from "$lib/utils";
 </script>
 
 <PageHeader
@@ -42,8 +42,11 @@
   <!-- Livré -->
   {#each details.inward as line}
     <div>
-      {line.deliveryDate} :
-      <a href="/stats/traceability/batch/{line.batchId}" class="underline"
+      {line.deliveryDate} : lot
+      <a
+        href="/stats/traceability/batch/{line.batchId}"
+        class="underline"
+        title="Voir les détails du lot Phyt'Essence"
         >{line.batchNumberPhytessence}</a
       >
       {#if line.batchNumberSupplier}
@@ -51,7 +54,9 @@
           href="/stats/traceability/sb/{encodeURIComponent(
             line.batchNumberSupplier
           )}"
-          class="underline">{line.batchNumberSupplier}</a
+          class="underline"
+          title="Voir les détails du lot fournisseur"
+          >{line.batchNumberSupplier}</a
         >)
       {:else}
         (lot fournisseur non renseigné)
@@ -66,17 +71,57 @@
 <div class="card my-2 p-4">
   <h3 class="h3">Sortant</h3>
 
-  {#each details.outward as line}
-    <div>
-      {line.orderDate} :
-      <a href="/stats/traceability/batch/{line.batchId}" class="underline"
-        >{line.batchNumberPhytessence}</a
-      >
-      (<a href="/stats/traceability/bag/{line.bagId}" class="underline"
-        >{line.bagNumber}</a
-      >) - {formatQuantity(line.quantity, plant.unit)}
-    </div>
-  {:else}
-    <div>Aucune sortie trouvée</div>
-  {/each}
+  <h4 class="h4 ml-2">Sachets préparés</h4>
+  <ul class="ml-6">
+    {#each details.outward.preparedBags as bag}
+      <li>
+        lot <a
+          href="/stats/traceability/batch/{bag.batchId}"
+          class="underline"
+          title="Voir les détails du lot Phyt'Essence"
+          >{bag.batchNumberPhytessence}</a
+        >
+        (<a
+          href="/stats/traceability/bag/{bag.bagId}"
+          class="underline"
+          title="Voir les détails du sachet">{bag.bagNumber}</a
+        >) - {formatQuantity(bag.quantity, plant.unit)}
+      </li>
+    {:else}
+      <li>Aucun sachet préparé ne contient cette plante</li>
+    {/each}
+  </ul>
+
+  <ul class="ml-2">
+    {#each details.outward?.customers || [] as customer}
+      <li class="mt-4">
+        <h4 class="h4">{customer?.name || "Client inconnu"}</h4>
+        <ul class="ml-2">
+          {#each customer?.orders || [] as order}
+            <li class="mt-2">Commande du {order?.orderDate}</li>
+            <ul class="ml-2">
+              {#each order?.bags || [] as bag}
+                <li>
+                  lot
+                  <a
+                    href="/stats/traceability/batch/{bag.batchId}"
+                    class="underline"
+                    title="Voir les détails du lot Phyt'Essence"
+                    >{bag.batchNumberPhytessence}</a
+                  >
+                  (<a
+                    href="/stats/traceability/bag/{bag.id}"
+                    class="underline"
+                    title="Voir les détails du sachet">{bag.number}</a
+                  >) - {formatQuantity(bag.quantity, plant.unit)}
+                </li>
+              {/each}
+            </ul>
+          {/each}
+        </ul>
+      </li>
+    {:else}
+      <li>Aucune sortie trouvée</li>
+    {/each}
+  </ul>
 </div>

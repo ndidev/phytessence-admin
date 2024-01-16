@@ -22,6 +22,8 @@ export const load = (async ({ params }) => {
     SELECT
       cf.orderId,
       cf.orderDate,
+      cf.customerId,
+      cf.customerName,
       cf.bagId,
       cf.bagNumber,
       cf.batchId,
@@ -56,16 +58,14 @@ export const load = (async ({ params }) => {
 
   inwardDetailsRows.forEach((line: any) => {
     line.quantity = parseFloat(line.quantity);
-    line.deliveryDate = line.deliveryDate
-      ? new Date(line.deliveryDate).toLocaleDateString("fr-FR")
-      : "en attente";
+    line.deliveryDate =
+      new Date(line.deliveryDate).toLocaleDateString("fr-FR") ?? "en attente";
   });
 
   outwardDetailsRows.forEach((line: any) => {
     line.quantity = parseFloat(line.quantity);
-    line.orderDate = line.orderDate
-      ? new Date(line.orderDate).toLocaleDateString("fr-FR")
-      : "date inconnue";
+    line.orderDate =
+      new Date(line.orderDate).toLocaleDateString("fr-FR") ?? "date inconnue";
   });
 
   type PlantStats = {
@@ -86,8 +86,10 @@ export const load = (async ({ params }) => {
   };
 
   type OutwardStats = {
-    orderId: CustomerOrder["id"];
-    orderDate: string;
+    customerId: Customer["id"] | null;
+    customerName: Customer["name"] | null;
+    orderId: CustomerOrder["id"] | null;
+    orderDate: string | null;
     bagId: CustomerOrderBag["id"];
     bagNumber: CustomerOrderBag["number"];
     batchId: ID;
@@ -99,11 +101,87 @@ export const load = (async ({ params }) => {
   const inwardDetails = inwardDetailsRows as unknown as InwardStats[];
   const outwardDetails = outwardDetailsRows as unknown as OutwardStats[];
 
+  console.log({
+    outwardDetails,
+    preparedBags: outwardDetails.filter(({ customerId }) => !customerId),
+    customers: outwardDetails.filter(({ customerId }) => customerId),
+  });
+
+  const preparedBags = outwardDetails
+    .filter(({ customerId }) => !customerId)
+    .map((line) => ({
+      bagId: line.bagId,
+      bagNumber: line.bagNumber,
+      batchId: line.batchId,
+      batchNumberPhytessence: line.batchNumberPhytessence,
+      quantity: line.quantity,
+    }));
+
+  const customersIdsDone: Customer["id"][] = [];
+
+  const customers = outwardDetails
+    .filter(({ customerId }) => customerId)
+    .map(({ customerId, customerName }) => {
+      customerId = customerId as string;
+
+      if (customersIdsDone.includes(customerId)) return;
+
+      customersIdsDone.push(customerId);
+
+      const customersSieve = outwardDetails.filter(
+        (line_) => customerId === line_.customerId
+      );
+
+      const customersOrdersIdsDone: ID[] = [];
+
+      return {
+        name: customerName,
+        orders: customersSieve
+          .map(({ orderDate, orderId }) => {
+            orderId = orderId as string;
+
+            if (customersOrdersIdsDone.includes(orderId)) return;
+
+            customersOrdersIdsDone.push(orderId);
+
+            const customerOrderSieve = customersSieve.filter(
+              (line_) => orderId === line_.orderId
+            );
+
+            return {
+              orderDate,
+              bags: customerOrderSieve
+                .map(
+                  ({
+                    bagNumber,
+                    bagId,
+                    quantity,
+                    batchId,
+                    batchNumberPhytessence,
+                  }) => ({
+                    id: bagId,
+                    number: bagNumber,
+                    batchId,
+                    batchNumberPhytessence,
+                    quantity,
+                  })
+                )
+                .filter((bag) => bag),
+            };
+          })
+          .filter((customerOrder) => customerOrder),
+      };
+    })
+    .filter((customer) => customer);
+
   return {
     plant,
     details: {
       inward: inwardDetails,
-      outward: outwardDetails,
+      outward: {
+        preparedBags,
+        customers,
+      },
     },
   };
 }) satisfies PageServerLoad;

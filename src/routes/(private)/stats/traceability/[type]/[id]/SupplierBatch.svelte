@@ -22,6 +22,11 @@
           batches: {
             id: Batch["id"];
             number: Batch["batchNumberPhytessence"];
+            preparedBags: {
+              id: PreparedBag["id"];
+              number: PreparedBag["number"];
+              quantity: Quantity;
+            }[];
             customers: {
               name: Customer["name"];
               orders: {
@@ -60,8 +65,6 @@
 
   afterUpdate(() => {
     ({ inward, outward } = data);
-
-    console.log({ inward });
   });
 </script>
 
@@ -83,11 +86,12 @@
             .reduce((prev, acc) => prev + acc, 0)}
           {@const outwardQuantity = supplier.orders
             .map(({ batches }) =>
-              batches.map(({ customers }) =>
-                customers.map(({ orders }) =>
+              batches.map(({ customers, preparedBags }) => [
+                ...customers.map(({ orders }) =>
                   orders.map(({ bags }) => bags.map(({ quantity }) => quantity))
-                )
-              )
+                ),
+                ...preparedBags.map(({ quantity }) => quantity),
+              ])
             )
             .flat(4)
             .reduce((prev, acc) => prev + acc, 0)}
@@ -126,11 +130,34 @@
                           <h5 class="h5">Lot n°{batch.number}</h5></a
                         >
 
-                        <!-- Clients -->
                         <ul class="ml-2">
+                          <!-- Sachets préparés -->
+                          <li class="mt-2">
+                            <h6 class="h6">Sachets préparés</h6>
+
+                            <ul class="ml-4">
+                              {#each batch.preparedBags as bag}
+                                <li>
+                                  Sachet numéro <a
+                                    href="/stats/traceability/bag/{bag.id}"
+                                    class="underline">{bag.number}</a
+                                  >
+                                  - {formatQuantity(bag.quantity, plant.unit)}
+                                </li>
+                              {:else}
+                                <li>
+                                  Aucun sachet préparé ne contient ce lot.
+                                </li>
+                              {/each}
+                            </ul>
+                          </li>
+
+                          <!-- Clients -->
                           {#each batch.customers as customers}
                             <li class="mt-2">
-                              <h6 class="h6">{customers.name}</h6>
+                              <h6 class="h6">
+                                {customers.name}
+                              </h6>
 
                               <!-- Commandes clients -->
                               <ul class="ml-2">

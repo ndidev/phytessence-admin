@@ -1,13 +1,58 @@
 <script lang="ts">
-  import { QuantityInput, DateInput, TextInput } from "$lib/components";
+  import { createEventDispatcher } from "svelte";
+  import { getModalStore } from "@skeletonlabs/skeleton";
 
-  export let batch: SupplierOrder["contents"][number]["batches"][0];
+  import {
+    QuantityInput,
+    DateInput,
+    TextInput,
+    ConfirmModal,
+  } from "$lib/components";
+  import { isNewId } from "$lib/utils";
+
+  export let batch: SupplierOrderContents["batches"][number];
   export let plant: PlantAutocomplete;
 
   /** Contents index - Index de la ligne de contenu */
+  export let contents: SupplierOrderContents;
   export let ci: number;
   /** Batch index - Index de la ligne de lot */
   export let bi: number;
+
+  // Local
+  const modalStore = getModalStore();
+  const dispatch = createEventDispatcher();
+
+  function deleteBatch() {
+    if (isNewId(batch.id)) {
+      _actualDelete();
+    }
+
+    if (!isNewId(batch.id)) {
+      modalStore.trigger({
+        type: "component",
+        component: {
+          ref: ConfirmModal,
+          props: {
+            title: "Supprimer le lot",
+            onConfirm: () => {
+              _actualDelete();
+              modalStore.clear();
+            },
+            onCancel: () => {
+              modalStore.close();
+            },
+          },
+          slot: "<p>Confirmez-vous la suppression de ce lot de la commande ?</p>",
+        },
+      });
+    }
+
+    function _actualDelete() {
+      contents.batches = contents.batches.filter(({ id }) => id !== batch.id);
+      dispatch("batchDeleted");
+    }
+  }
 </script>
 
 <div class="card mt-2 p-2">
@@ -85,7 +130,8 @@
         type="button"
         class="btn variant-soft-error"
         title="Supprimer le lot"
-        on:click><span class="material-symbols-outlined">delete</span></button
+        on:click={deleteBatch}
+        ><span class="material-symbols-outlined">delete</span></button
       >
     </div>
   </fieldset>

@@ -94,14 +94,16 @@
 
 {#each customersOrders || [] as customerData}
   <div class="card p-2 my-2">
-    <span class="text-lg">{customerData.customerName}</span>
+    <span class="text-lg">{customerData.customerName || "En préparation"}</span>
     <ul class="ml-2">
       <!-- Commandes -->
       {#each customerData.orders as order}
         <li class="mt-2">
-          <div>
-            Commande du {new Date(order.orderDate).toLocaleDateString()}
-          </div>
+          {#if order.orderDate}
+            <div>
+              Commande du {new Date(order.orderDate).toLocaleDateString()}
+            </div>
+          {/if}
           <ul class="ml-2">
             <!-- Sachets -->
             {#each order.bags as bag}

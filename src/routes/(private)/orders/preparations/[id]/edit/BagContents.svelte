@@ -11,14 +11,13 @@
 
   // Props
   export let contents: CustomerOrderBag["contents"][0];
-  export let bag: CustomerOrderBag;
-  /** Bag index - Index de la ligne de sachet */
-  export let bi: number;
+  export let bag: PreparedBag;
   /** Contents index - Index de la ligne de contenu */
   export let ci: number;
 
   // Local
   const modalStore = getModalStore();
+  const dispatch = createEventDispatcher();
   const plants = getContext<PlantAutocomplete[]>("plants");
   const batches = getContext<BatchAutocomplete[]>("batches");
   let plant =
@@ -26,8 +25,6 @@
     ({ id: "", name: "", unit: "g" } as PlantAutocomplete);
   let filteredBatches = batches.filter(({ plantId }) => plantId === plant.id);
   let batchNumberAutocomplete: AutocompleteInput<Plant["id"]>;
-
-  const dispatch = createEventDispatcher();
 
   function filterBatches(plantId: Plant["id"]) {
     filteredBatches = batches.filter(
@@ -69,17 +66,12 @@
   <fieldset
     class="grid align-end gap-2 md:grid-cols-2 md:gap-4 xl:grid-cols-[repeat(3,_1fr)_auto]"
   >
-    <input
-      type="hidden"
-      name="bags.{bi}.contents.{ci}.id"
-      value={contents.id}
-      readonly
-    />
+    <input type="hidden" name="contents.{ci}.id" value={contents.id} readonly />
 
     <!-- Plante -->
     <AutocompleteInput
       label="Plante"
-      name="bags.{bi}.contents.{ci}.plantId"
+      name="contents.{ci}.plantId"
       data={plants}
       bind:value={contents.plantId}
       onInput={() => batchNumberAutocomplete.reset()}
@@ -91,7 +83,7 @@
     <AutocompleteInput
       bind:this={batchNumberAutocomplete}
       label="Numéro de lot"
-      name="bags.{bi}.contents.{ci}.batchId"
+      name="contents.{ci}.batchId"
       data={filteredBatches}
       bind:value={contents.batchId}
       disabled={!contents.plantId}
@@ -100,7 +92,7 @@
 
     <!-- Quantité -->
     <QuantityInput
-      name="bags.{bi}.contents.{ci}.quantity"
+      name="contents.{ci}.quantity"
       bind:value={contents.quantity}
       unit={plant.unit}
       required

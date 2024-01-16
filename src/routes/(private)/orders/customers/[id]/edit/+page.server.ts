@@ -113,6 +113,11 @@ export const load = (async ({ fetch, params, url }) => {
   const bagTypesResponse = await fetch("/api/bagTypes?format=autocomplete");
   const bagTypes = (await bagTypesResponse.json()) as BagTypeAutocomplete[];
 
+  // Liste des sachets préparés
+  const [preparedBags] = (await mysql.query(
+    `SELECT id, number FROM customersOrdersBags WHERE orderId IS NULL ORDER BY number DESC`
+  )) as unknown as PreparedBag[][];
+
   return {
     order,
     customers,
@@ -121,7 +126,8 @@ export const load = (async ({ fetch, params, url }) => {
     batches,
     distributionChannels,
     bagTypes,
-    lastbagNumber: lastBagNumber,
+    preparedBags,
+    lastBagNumber,
   };
 }) satisfies PageServerLoad;
 
@@ -185,45 +191,73 @@ export const actions = {
         }
       );
 
-      let lastbagNumber = await getLastBagNumber();
+      let lastBagNumber = await getLastBagNumber();
 
       // Sachets
       for (const bag of parsedData.bags || []) {
-        const bagId = nanoid();
+        const bagId = isNewId(bag.id) ? nanoid() : bag.id;
 
-        await mysql.execute(
-          `INSERT INTO customersOrdersBags
-            SET
-              id = :bagId,
-              orderId = :orderId,
-              number = :number,
-              bagTypeId = :bagTypeId
-        `,
+        const bagSql = isNewId(bag.id)
+          ? `INSERT INTO customersOrdersBags
+              SET
+                id = :bagId,
+                orderId = :orderId,
+                number = :number,
+                bagTypeId = :bagTypeId`
+          : `UPDATE customersOrdersBags
+              SET
+                orderId = :orderId,
+                number = :number,
+                bagTypeId = :bagTypeId
+              WHERE
+                id = :bagId`;
+
+        await mysql.execute(bagSql, {
+          bagId,
+          orderId,
+          number: bag.number.trim() || ++lastBagNumber,
+          bagTypeId: bag.bagTypeId || null,
+        });
+
+        // Contents
+        const contentsIds =
+          bag.contents.length === 0 ? [""] : bag.contents.map(({ id }) => id);
+
+        // Supprimer les lignes de contenu qui ne sont pas dans les données transmises
+        await mysql.query(
+          `DELETE FROM customersOrdersBagsContents
+            WHERE bagId = :bagId
+            AND NOT id IN(:contentsIds)`,
           {
             bagId,
-            orderId,
-            number: bag.number.trim() || ++lastbagNumber,
-            bagTypeId: bag.bagTypeId || null,
+            contentsIds,
           }
         );
 
-        // Contents
-        for (const contents of bag.contents || []) {
-          await mysql.execute(
-            `INSERT INTO customersOrdersBagsContents
-              SET
-                id = :id,
-                bagId = :bagId,
-                quantity = :quantity,
-                batchId = :batchId
-          `,
-            {
-              id: nanoid(),
-              bagId,
-              quantity: contents.quantity,
-              batchId: contents.batchId,
-            }
-          );
+        for (const contents of bag.contents) {
+          const contentsId = isNewId(contents.id) ? nanoid() : contents.id;
+
+          const contentsSql = isNewId(contents.id)
+            ? `INSERT INTO customersOrdersBagsContents
+                SET
+                  id = :contentsId,
+                  bagId = :bagId,
+                  quantity = :quantity,
+                  batchId = :batchId`
+            : `UPDATE customersOrdersBagsContents
+                SET
+                  bagId = :bagId,
+                  quantity = :quantity,
+                  batchId = :batchId
+                WHERE
+                  id = :contentsId`;
+
+          await mysql.execute(contentsSql, {
+            contentsId,
+            bagId,
+            quantity: contents.quantity,
+            batchId: contents.batchId,
+          });
         }
       }
 
@@ -303,7 +337,7 @@ export const actions = {
         }
       );
 
-      let lastbagNumber = await getLastBagNumber();
+      let lastBagNumber = await getLastBagNumber();
 
       parsedData.bags ||= [];
 
@@ -344,8 +378,8 @@ export const actions = {
 
         await mysql.execute(bagSql, {
           bagId,
-          orderId,
-          number: bag.number.trim() || ++lastbagNumber,
+          orderId: bag.orderId || null,
+          number: bag.number.trim() || ++lastBagNumber,
           bagTypeId: bag.bagTypeId || null,
         });
 

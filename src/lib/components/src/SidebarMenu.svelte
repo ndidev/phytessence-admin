@@ -6,8 +6,9 @@
 >
   <nav class="list-nav">
     <ul>
-      <li><a href="/orders/customers">Commandes clients</a></li>
       <li><a href="/orders/suppliers">Commandes fournisseurs</a></li>
+      <li><a href="/orders/customers">Commandes clients</a></li>
+      <li><a href="/orders/preparations">Sachets préparés</a></li>
       <hr />
       <li><a href="/stats/stocks">Stocks</a></li>
       <li><a href="/stats/traceability">Traçabilité</a></li>
@@ -16,8 +17,8 @@
       <li><a href="/products/plants">Plantes</a></li>
       <li><a href="/products/recipes">Recettes</a></li>
       <hr />
-      <li><a href="/contacts/customers">Annuaire clients</a></li>
       <li><a href="/contacts/suppliers">Annuaire fournisseurs</a></li>
+      <li><a href="/contacts/customers">Annuaire clients</a></li>
     </ul>
   </nav>
 </div>

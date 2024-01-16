@@ -9,6 +9,7 @@
 
   import Bag from "./Bag.svelte";
   import RecipeSelection from "./RecipeSelection.svelte";
+  import PreparedBagSelection from "./PreparedBagSelection.svelte";
 
   import { page } from "$app/stores";
   import { enhance } from "$app/forms";
@@ -17,7 +18,6 @@
     AutocompleteInput,
     DateInput,
     Textarea,
-    ConfirmModal,
     QuantityInput,
   } from "$lib/components";
   import {
@@ -34,8 +34,9 @@
     recipes,
     batches,
     bagTypes,
+    preparedBags,
     distributionChannels,
-    lastbagNumber,
+    lastBagNumber,
   } = data;
 
   setContext("plants", plants);
@@ -57,42 +58,12 @@
     order.bags.push({
       id: createNewId(),
       orderId: order.id,
-      number: "~" + String(++lastbagNumber), // "~" = numéro temporaire
+      number: "~" + String(++lastBagNumber), // "~" = numéro temporaire
       bagTypeId: null,
       contents: [],
     });
 
     order = order;
-  }
-
-  function deleteBag(bagId: CustomerOrderBag["id"]) {
-    if (isNewId(bagId)) {
-      _actualDelete();
-    }
-
-    if (!isNewId(bagId)) {
-      modalStore.trigger({
-        type: "component",
-        component: {
-          ref: ConfirmModal,
-          props: {
-            title: "Supprimer le sachet",
-            onConfirm: () => {
-              _actualDelete();
-              modalStore.clear();
-            },
-            onCancel: () => {
-              modalStore.close();
-            },
-          },
-          slot: "<p>Confirmez-vous la suppression de ce sachet de la commande ?</p>",
-        },
-      });
-    }
-
-    function _actualDelete() {
-      order.bags = order.bags.filter(({ id }) => id !== bagId);
-    }
   }
 
   function addRecipe() {
@@ -115,7 +86,7 @@
               addedBags.push({
                 id: createNewId(),
                 orderId: order.id,
-                number: "~" + String(++lastbagNumber),
+                number: "~" + String(++lastBagNumber),
                 bagTypeId,
                 // @ts-ignore
                 contents: contents.map(({ plantId, quantity, batchId }) => ({
@@ -129,6 +100,24 @@
             }
           });
           order.bags = [...order.bags, ...addedBags];
+        }
+      },
+    });
+  }
+
+  function addPreparedBag() {
+    modalStore.trigger({
+      type: "component",
+      component: {
+        ref: PreparedBagSelection,
+        props: {
+          preparedBags,
+        },
+      },
+      response: (preparedBag: CustomerOrderBag) => {
+        if (preparedBag) {
+          preparedBag.orderId = order.id;
+          order.bags = [...order.bags, preparedBag];
         }
       },
     });
@@ -234,7 +223,7 @@
     <div class="h5 my-2">Sachets de la commande</div>
 
     {#each order.bags as bag, bi (bag.id)}
-      <Bag {bag} {bi} on:click={() => deleteBag(bag.id)} />
+      <Bag {order} {bag} {bi} on:bagDeleted={() => (order.bags = order.bags)} />
     {:else}
       <div class="card p-2 mt-2">La commande est vide</div>
     {/each}
@@ -244,6 +233,13 @@
       class="btn variant-filled-primary mt-2"
       on:click={addBag}
       title="Ajouter un sachet">Ajouter un sachet</button
+    >
+
+    <button
+      type="button"
+      class="btn variant-filled-secondary mt-2"
+      on:click={addPreparedBag}
+      title="Ajouter une recette">Ajouter un sachet préparé</button
     >
 
     <button

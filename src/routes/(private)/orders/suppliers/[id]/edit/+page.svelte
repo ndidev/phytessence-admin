@@ -5,8 +5,6 @@
 
   import { setContext } from "svelte";
 
-  import { getModalStore } from "@skeletonlabs/skeleton";
-
   import ContentsLine from "./ContentsLine.svelte";
 
   import { page } from "$app/stores";
@@ -17,21 +15,14 @@
     DateInput,
     TextInput,
     Textarea,
-    ConfirmModal,
   } from "$lib/components";
-  import {
-    showToastActionResult,
-    createNewId,
-    isNewId,
-    DateUtils,
-  } from "$lib/utils";
+  import { showToastActionResult, createNewId, DateUtils } from "$lib/utils";
 
   let { order, suppliers, plants } = data;
 
   setContext("plants", plants);
 
   // Local
-  const modalStore = getModalStore();
   const isNew = !order.id;
   let submitting = false;
 
@@ -53,36 +44,6 @@
     });
 
     order = order;
-  }
-
-  function deletePlant(contentsId: SupplierOrder["contents"][number]["id"]) {
-    if (isNewId(contentsId)) {
-      _actualDelete();
-    }
-
-    if (!isNewId(contentsId)) {
-      modalStore.trigger({
-        type: "component",
-        component: {
-          ref: ConfirmModal,
-          props: {
-            title: "Supprimer la plante",
-            onConfirm: () => {
-              _actualDelete();
-              modalStore.clear();
-            },
-            onCancel: () => {
-              modalStore.close();
-            },
-          },
-          slot: "<p>Confirmez-vous la suppression de cette plante de la commande ?</p>",
-        },
-      });
-    }
-
-    function _actualDelete() {
-      order.contents = order.contents.filter(({ id }) => id !== contentsId);
-    }
   }
 </script>
 
@@ -168,7 +129,12 @@
     <div class="h5 my-2">Contenu de la commande</div>
 
     {#each order.contents as contents, ci (contents.id)}
-      <ContentsLine {contents} {ci} on:click={() => deletePlant(contents.id)} />
+      <ContentsLine
+        {order}
+        {contents}
+        {ci}
+        on:contentsDeleted={() => (order.contents = order.contents)}
+      />
     {:else}
       <div class="card p-2 mt-2">La commande est vide</div>
     {/each}

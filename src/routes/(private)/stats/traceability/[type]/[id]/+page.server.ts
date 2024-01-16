@@ -216,8 +216,8 @@ export const load = (async ({ params }) => {
     const data = {
       customerOrder: {
         orderId: bagData.orderId,
-        customerName: orderData.customerName,
-        orderDate: orderData.orderDate,
+        customerName: orderData?.customerName || "",
+        orderDate: orderData?.orderDate || "en préparation",
       },
       contents: contentsData,
     };
@@ -238,51 +238,42 @@ export const load = (async ({ params }) => {
 
     const inwardSql = `
       SELECT
-        b.quantity,
-        soc.plantId,
-        s.id as supplierId
-      FROM batches b
-      JOIN suppliersOrdersContents soc ON soc.id = b.suppliersContentsId
-      JOIN suppliersOrders so ON so.id = soc.orderId
-      JOIN suppliers s ON s.id = so.supplierId
-      WHERE b.batchNumberSupplier = :batchNumber
+        sf.quantity,
+        sf.plantId,
+        sf.supplierId
+      FROM suppliersFull sf
+      WHERE sf.batchNumberSupplier = :batchNumber
       `;
 
     const outwardSql = `
       SELECT
-        b.id as batchId,
-        b.batchNumberPhytessence as batchNumberPhytessence,
-        so.id as supplierOrderId,
-        so.orderDate as supplierOrderDate,
-        s.id as supplierId,
-        s.name as supplierName,
-        p.id as plantId,
-        p.name as plantName,
+        sf.batchId,
+        sf.batchNumberPhytessence,
+        sf.orderId as supplierOrderId,
+        sf.orderDate as supplierOrderDate,
+        sf.supplierId,
+        sf.supplierName,
+        sf.plantId,
+        sf.plantName,
         p.unit,
-        cobc.quantity,
-        cob.id as bagId,
-        cob.number as bagNumber,
-        co.orderDate as customerOrderDate,
-        c.id as customerId,
-        c.name as customerName
-      FROM batches b
-      LEFT JOIN suppliersOrdersContents soc ON soc.id = b.suppliersContentsId
-      LEFT JOIN suppliersOrders so ON so.id = soc.orderId
-      LEFT JOIN suppliers s ON s.id = so.supplierId
-      LEFT JOIN plants p ON p.id = soc.plantId
-      LEFT JOIN customersOrdersBagsContents cobc ON b.id = cobc.batchId
-      LEFT JOIN customersOrdersBags cob ON cob.id = cobc.bagId
-      LEFT JOIN customersOrders co ON co.id = cob.orderId
-      LEFT JOIN customers c ON c.id = co.customerId
-      WHERE b.batchNumberSupplier = :batchNumber
+        cf.quantity,
+        cf.bagId,
+        cf.bagNumber,
+        cf.orderDate as customerOrderDate,
+        cf.customerId,
+        cf.customerName
+      FROM suppliersFull sf
+      LEFT JOIN customersFull cf ON cf.batchId = sf.batchId
+      LEFT JOIN plants p ON p.id = sf.plantId
+      WHERE sf.batchNumberSupplier = :batchNumber
       ORDER BY
-        p.name,
-        s.name,
-        so.orderDate,
-        b.batchNumberPhytessence,
-        c.name,
-        co.orderDate,
-        cob.number
+        sf.plantName,
+        sf.supplierName,
+        sf.orderDate,
+        sf.batchNumberPhytessence,
+        cf.customerName,
+        cf.orderDate,
+        cf.bagNumber
     `;
 
     const [inwardResults] = (await mysql.execute(inwardSql, {
@@ -364,6 +355,16 @@ export const load = (async ({ params }) => {
                           return {
                             id: batchId,
                             number: batchNumberPhytessence,
+                            preparedBags: batchesSieve
+                              .filter(({ customerId }: any) => !customerId)
+                              .map(({ bagId, bagNumber, quantity }: any) => {
+                                return {
+                                  id: bagId,
+                                  number: bagNumber,
+                                  quantity: parseFloat(quantity),
+                                };
+                              })
+                              .filter((bag: any) => bag),
                             customers: batchesSieve
                               .filter(({ customerId }: any) => customerId)
                               .map(({ customerId, customerName }: any) => {
