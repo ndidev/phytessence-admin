@@ -8,9 +8,9 @@ import { locale as defaultLocale } from "$lib/utils";
  * Utilisé dans les différents planning et l'envoi PDF
  */
 export class DateUtils {
-  date: Date;
+  date: Date | null;
 
-  constructor(date: Date | string = new Date()) {
+  constructor(date: Date | string | null = new Date()) {
     if (typeof date === "string") date = new Date(date);
 
     this.date = date;
@@ -110,6 +110,10 @@ export class DateUtils {
    * @returns `true` si jour férié, `false` sinon
    */
   verifierJourFerie() {
+    if (this.date === null) {
+      return undefined;
+    }
+
     const annee = this.date.getFullYear();
 
     const feries = DateUtils.construireListeJoursFeries(annee);
@@ -132,6 +136,10 @@ export class DateUtils {
    * @returns `true` si jour ouvré, `false` si jour chômé.
    */
   verifierJourOuvre() {
+    if (this.date === null) {
+      return undefined;
+    }
+
     if (this.verifierJourFerie()) {
       return false;
     }
@@ -155,6 +163,10 @@ export class DateUtils {
    * @returns Date
    */
   decaler(decalage = 0) {
+    if (this.date === null) {
+      return undefined;
+    }
+
     return new DateUtils(
       new Date(
         this.date.getFullYear(),
@@ -180,11 +192,17 @@ export class DateUtils {
    * @returns Date
    */
   jourOuvrePrecedent(nombreJours = 1) {
+    if (this.date === null) {
+      return undefined;
+    }
+
     let jourOuvrePrecedent = new Date(this.date);
 
     for (let i = 0; i < nombreJours; i++) {
       do {
-        jourOuvrePrecedent = new DateUtils(jourOuvrePrecedent).decaler(-1).date;
+        jourOuvrePrecedent = (
+          new DateUtils(jourOuvrePrecedent).decaler(-1) as DateUtils
+        ).date as Date;
       } while (!new DateUtils(jourOuvrePrecedent).verifierJourOuvre());
     }
 
@@ -208,11 +226,17 @@ export class DateUtils {
    * @returns Date
    */
   jourOuvreSuivant(nombreJours = 1) {
+    if (this.date === null) {
+      return undefined;
+    }
+
     let jourOuvreSuivant = new Date(this.date);
 
     for (let i = 0; i < nombreJours; i++) {
       do {
-        jourOuvreSuivant = new DateUtils(jourOuvreSuivant).decaler(+1).date;
+        jourOuvreSuivant = (
+          new DateUtils(jourOuvreSuivant).decaler(+1) as DateUtils
+        ).date as Date;
       } while (!new DateUtils(jourOuvreSuivant).verifierJourOuvre());
     }
 
@@ -223,6 +247,10 @@ export class DateUtils {
    * Retourne la date au format `yyyy-mm-dd`.
    */
   toLocaleISODateString(locale: Intl.LocalesArgument = defaultLocale) {
+    if (this.date === null) {
+      return undefined;
+    }
+
     return this.date.toLocaleDateString(locale).split("/").reverse().join("-");
   }
 
@@ -230,6 +258,10 @@ export class DateUtils {
    * Retourne la date au format textuel long.
    */
   toLongLocaleDateString(locale: Intl.LocalesArgument = defaultLocale) {
+    if (this.date === null) {
+      return undefined;
+    }
+
     return this.date.toLocaleDateString(locale, {
       weekday: "long",
       year: "numeric",
@@ -242,6 +274,10 @@ export class DateUtils {
    * Retourne une date formattée en différent formats.
    */
   format(locale: Intl.LocalesArgument = defaultLocale) {
+    if (this.date === null) {
+      return undefined;
+    }
+
     return {
       iso: this.toLocaleISODateString(locale),
       short: new Date(this.date).toLocaleDateString(locale),

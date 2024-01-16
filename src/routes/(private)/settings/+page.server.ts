@@ -396,7 +396,7 @@ export const actions = {
       // Rajout pour faciliter le traitement
       contentsId: SupplierOrderContents["id"];
       bagId: CustomerOrderBag["id"];
-      orderId: CustomerOrder["id"];
+      orderId: CustomerOrder["id"] | null;
       customerId: Customer["id"];
       distributionChannelId: number | null;
     };
@@ -434,7 +434,7 @@ export const actions = {
 
           contentsId: nanoid(),
           bagId: "",
-          orderId: "",
+          orderId: null,
           customerId: "",
         };
       })
@@ -476,10 +476,12 @@ export const actions = {
         new Set(
           customersOrdersBagsContentsRaw.map(({ customerName }) => customerName)
         )
-      ).map((name) => ({
-        id: nanoid(),
-        name,
-      }));
+      )
+        .filter((name) => name)
+        .map((name) => ({
+          id: nanoid(),
+          name,
+        }));
 
       // Mise à jour des customerIds
       customersOrdersBagsContentsRaw.forEach((line) => {
@@ -495,10 +497,12 @@ export const actions = {
             ({ distributionChannel }) => distributionChannel
           )
         )
-      ).map((name) => ({
-        id: ++incrementId,
-        name,
-      }));
+      )
+        .filter((name) => name)
+        .map((name) => ({
+          id: ++incrementId,
+          name,
+        }));
 
       // Mise à jour des distributionChannelIds
       customersOrdersBagsContentsRaw.forEach((line) => {
@@ -509,22 +513,24 @@ export const actions = {
       });
 
       // 1.c. extraction des commandes
-      let orders = customersOrdersBagsContentsRaw.map(
-        ({
-          customerId,
-          orderDate,
-          distributionChannelId,
-          sellingPrice,
-          comments,
-        }) => ({
-          id: "",
-          customerId,
-          orderDate,
-          distributionChannelId,
-          sellingPrice,
-          comments,
-        })
-      );
+      let orders = customersOrdersBagsContentsRaw
+        .map(
+          ({
+            customerId,
+            orderDate,
+            distributionChannelId,
+            sellingPrice,
+            comments,
+          }) => ({
+            id: "",
+            customerId,
+            orderDate,
+            distributionChannelId,
+            sellingPrice,
+            comments,
+          })
+        )
+        .filter(({ customerId }) => customerId);
 
       // prettier-ignore
       // @ts-expect-error
@@ -540,7 +546,7 @@ export const actions = {
           orders.find(
             ({ customerId, orderDate }) =>
               orderDate === line.orderDate && customerId === line.customerId
-          )?.id || "";
+          )?.id || null;
       });
 
       // 1.d. extraction des sachets
@@ -612,7 +618,11 @@ export const actions = {
       let bagsQuery = `INSERT INTO customersOrdersBags (id, number, orderId) VALUES `;
 
       for (const bag of bags) {
-        bagsQuery += `("${bag.id}", "${bag.bagNumber}", "${bag.orderId}"),`;
+        bagsQuery += `(
+          "${bag.id}",
+          "${bag.bagNumber}",
+          ${bag.orderId ? "'" + bag.orderId + "'" : null}
+          ),`;
       }
 
       // Replacement de la dernière virgule

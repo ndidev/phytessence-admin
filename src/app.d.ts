@@ -197,33 +197,11 @@ declare global {
     /** Prix de vente. */
     sellingPrice: number;
 
-    /** Canal de distribution. */
+    /** Identifiant du canal de distribution. */
     distributionChannelId: DistributionChannel["id"] | null;
 
     /** Sachets de la commande. */
-    bags: {
-      /** Identifiant du sachet. */
-      id: ID;
-      /** Identifiant de la commande. */
-      orderId: Required<CustomerOrder>["id"];
-      /** Numéro du sachet. */
-      number: string;
-      /** Type de sachet. */
-      bagTypeId: BagType["id"] | null;
-      /** Contenu du sachet. */
-      contents: {
-        /** Identifiant de la ligne de contenu. */
-        id: ID;
-        /** Identifiant du sachet. */
-        bagId: CustomerOrderBag["id"];
-        /** identifiant de la plante. */
-        plantId: Required<Plant>["id"];
-        /** Quantité. */
-        quantity: Quantity;
-        /** Numéro de lot Phyt'Essence. */
-        batchId: Batch["id"];
-      }[];
-    }[];
+    bags: (CustomerOrderBag & { id: CustomerOrder["id"] })[];
 
     /** Commentaires. */
     comments: string;
@@ -232,7 +210,31 @@ declare global {
   /**
    * Sachet d'une commande client.
    */
-  type CustomerOrderBag = CustomerOrder["bags"][number];
+  type CustomerOrderBag = {
+    /** Identifiant du sachet. */
+    id: ID;
+    /** Identifiant de la commande. */
+    orderId: CustomerOrder["id"] | null;
+    /** Numéro du sachet. */
+    number: string;
+    /** Identifiant du type de sachet. */
+    bagTypeId: BagType["id"] | null;
+    /** Contenu du sachet. */
+    contents: {
+      /** Identifiant de la ligne de contenu. */
+      id: ID;
+      /** Identifiant du sachet. */
+      bagId: CustomerOrderBag["id"];
+      /** identifiant de la plante. */
+      plantId: Required<Plant>["id"];
+      /** Numéro de lot Phyt'Essence. */
+      batchId: Batch["id"];
+      /** Quantité. */
+      quantity: Quantity;
+    }[];
+  };
+
+  type PreparedBag = CustomerOrderBag & { orderId: null };
 
   /**
    * Type de sachet.

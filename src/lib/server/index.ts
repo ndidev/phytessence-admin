@@ -4,3 +4,4 @@ export {
   setSessionCookie,
   deleteSessionCookie,
 } from "./src/cookies";
+export { getLastBagNumber } from "./src/getLastBagNumber";
