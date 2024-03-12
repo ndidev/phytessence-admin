@@ -2,11 +2,11 @@ import mysql from "mysql2/promise";
 
 import {
   DATABASE_URL, // PlanetScale
-  MYSQL_HOST,
-  MYSQL_PORT,
-  MYSQL_PASS,
-  MYSQL_USER,
-  MYSQL_BASE,
+  MARIADB_HOST,
+  MARIADB_PORT,
+  MARIADB_PASS,
+  MARIADB_USER,
+  MARIADB_BASE,
 } from "$env/static/private";
 
 const connectionUri = DATABASE_URL
@@ -14,11 +14,11 @@ const connectionUri = DATABASE_URL
       uri: DATABASE_URL,
     }
   : ({
-      host: MYSQL_HOST,
-      port: parseInt(MYSQL_PORT),
-      user: MYSQL_USER,
-      password: MYSQL_PASS,
-      database: MYSQL_BASE,
+      host: MARIADB_HOST,
+      port: parseInt(MARIADB_PORT),
+      user: MARIADB_USER,
+      password: MARIADB_PASS,
+      database: MARIADB_BASE,
     } satisfies mysql.ConnectionOptions);
 
 const options = {
